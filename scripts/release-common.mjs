@@ -5,9 +5,9 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-export const RELEASE_REPOSITORY = "openclaw/wacli";
-export const RELEASE_GO_VERSION = "go1.27.1";
-export const RELEASE_GO_TOOLCHAIN = "go1.27.1";
+export const RELEASE_REPOSITORY = "gabrielMalonso/whatscli";
+export const RELEASE_GO_VERSION = "go1.27.2";
+export const RELEASE_GO_TOOLCHAIN = "go1.27.2";
 export const RELEASE_GOVULNCHECK_VERSION = "v1.8.0";
 export const RELEASE_IDENTIFIER = "org.openclaw.wacli";
 export const RELEASE_TEAM_ID = "FWJYW4S8P8";
@@ -68,12 +68,12 @@ export function releaseGoVersionForCommit(commit, options = {}) {
 
 export function archiveNames(version) {
   return [
-    `wacli_${version}_darwin_amd64.tar.gz`,
-    `wacli_${version}_darwin_arm64.tar.gz`,
-    `wacli_${version}_darwin_universal.tar.gz`,
-    `wacli_${version}_linux_amd64.tar.gz`,
-    `wacli_${version}_linux_arm64.tar.gz`,
-    `wacli_${version}_windows_amd64.zip`,
+    `whatscli_${version}_darwin_amd64.tar.gz`,
+    `whatscli_${version}_darwin_arm64.tar.gz`,
+    `whatscli_${version}_darwin_universal.tar.gz`,
+    `whatscli_${version}_linux_amd64.tar.gz`,
+    `whatscli_${version}_linux_arm64.tar.gz`,
+    `whatscli_${version}_windows_amd64.zip`,
   ];
 }
 
@@ -87,12 +87,12 @@ export function releaseAssetNames(version) {
 
 export function releaseArchiveTarget(name, version) {
   const targets = new Map([
-    [`wacli_${version}_darwin_amd64.tar.gz`, { goos: "darwin", goarch: "amd64" }],
-    [`wacli_${version}_darwin_arm64.tar.gz`, { goos: "darwin", goarch: "arm64" }],
-    [`wacli_${version}_darwin_universal.tar.gz`, { goos: "darwin", goarch: "universal" }],
-    [`wacli_${version}_linux_amd64.tar.gz`, { goos: "linux", goarch: "amd64" }],
-    [`wacli_${version}_linux_arm64.tar.gz`, { goos: "linux", goarch: "arm64" }],
-    [`wacli_${version}_windows_amd64.zip`, { goos: "windows", goarch: "amd64" }],
+    [`whatscli_${version}_darwin_amd64.tar.gz`, { goos: "darwin", goarch: "amd64" }],
+    [`whatscli_${version}_darwin_arm64.tar.gz`, { goos: "darwin", goarch: "arm64" }],
+    [`whatscli_${version}_darwin_universal.tar.gz`, { goos: "darwin", goarch: "universal" }],
+    [`whatscli_${version}_linux_amd64.tar.gz`, { goos: "linux", goarch: "amd64" }],
+    [`whatscli_${version}_linux_arm64.tar.gz`, { goos: "linux", goarch: "arm64" }],
+    [`whatscli_${version}_windows_amd64.zip`, { goos: "windows", goarch: "amd64" }],
   ]);
   const target = targets.get(name);
   if (!target) throw new Error(`unknown release archive target ${name}`);
@@ -363,7 +363,7 @@ export function assertGoBuildInfo(binary, version, options = {}) {
       `${path.basename(binary)} was built with ${buildInfo.GoVersion ?? "unknown"}, not ${expectedGoVersion}`,
     );
   }
-  if (buildInfo.Path !== "github.com/openclaw/wacli/cmd/wacli") {
+  if (buildInfo.Path !== "github.com/gabrielMalonso/whatscli/cmd/whatscli") {
     throw new Error(`${path.basename(binary)} has the wrong Go main package`);
   }
   const settings = new Map();
@@ -417,7 +417,7 @@ export function assertRuntimeVersion(binary, version, options = {}) {
     env,
   });
   const output = `${result.stdout ?? ""}${result.stderr ?? ""}`.trim();
-  if (output !== `wacli ${version}`) {
+  if (output !== `whatscli ${version}`) {
     throw new Error(`${path.basename(binary)} --version returned ${JSON.stringify(output)}`);
   }
 }

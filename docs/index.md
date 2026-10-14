@@ -1,20 +1,20 @@
 ---
 title: Overview
 permalink: /
-description: "wacli is a single Go CLI that pairs as a linked WhatsApp Web device, mirrors message history into local SQLite with FTS5 search, and exposes send, media, contact, and group workflows for terminals, scripts, and coding agents."
+description: "WhatsCLI — WhatsApp for Agents is a single Go CLI that pairs as a linked WhatsApp Web device, mirrors message history into local SQLite with FTS5 search, and exposes send, media, contact, and group workflows for terminals, scripts, and coding agents."
 ---
 
-# wacli
+# WhatsCLI — WhatsApp for Agents
 
 A script-friendly WhatsApp CLI built on [`whatsmeow`](https://github.com/tulir/whatsmeow). One binary pairs as a linked WhatsApp Web device, syncs messages and status broadcasts into a local SQLite store, and exposes search, send, media, contact, and group commands with predictable output for terminals, shell pipelines, and coding agents.
 
-## Why wacli
+## Why WhatsCLI
 
 - **Local mirror, fast search.** All synced messages land in a SQLite store with an FTS5 index; offline `messages search` returns hits in milliseconds.
 - **Chat state controls.** Archive, pin, mute, and mark chats read/unread from the CLI, then filter `chats list` by those states.
 - **Stable output.** Human-readable tables by default, `--json` to stdout for scripts, NDJSON `--events` for long-running commands. Human progress, prompts, and errors stay on stderr so pipes stay clean.
-- **Single binary.** No daemon, no plugin host. Run `wacli auth`, then `wacli sync --follow` to keep the store warm.
-- **Built for agents.** `--read-only` (or `WACLI_READONLY=1`) rejects intentional WhatsApp mutations and archive writes by wacli. Requested [export files](messages.md#export), [download output](media.md#download), [explicit adapter execution](media.md#explicit-local-transcription), and [SQLite WAL/SHM bookkeeping](store.md#local-reads-by-default) remain permitted. Downloads may use the network; the chosen adapter is not sandboxed and may make network requests or file writes. Store locks prevent two instances from racing on the same device identity.
+- **Single binary.** No daemon, no plugin host. Run `whatscli auth`, then `whatscli sync --follow` to keep the store warm.
+- **Built for agents.** `--read-only` (or `WACLI_READONLY=1`) rejects intentional WhatsApp mutations and archive writes by WhatsCLI. Requested [export files](messages.md#export), [download output](media.md#download), [explicit adapter execution](media.md#explicit-local-transcription), and [SQLite WAL/SHM bookkeeping](store.md#local-reads-by-default) remain permitted. Downloads may use the network; the chosen adapter is not sandboxed and may make network requests or file writes. Store locks prevent two instances from racing on the same device identity.
 - **Boundable storage.** `sync` warns when storage is uncapped; `--max-messages` / `--max-db-size` cap local growth. Send retries are bounded; media uploads/downloads cap at 100 MiB.
 - **Best-effort history.** `history coverage` shows local anchors, `history fill --dry-run` plans candidate chats, and `history backfill` requests older messages per chat from your primary device.
 
@@ -29,7 +29,7 @@ A script-friendly WhatsApp CLI built on [`whatsmeow`](https://github.com/tulir/w
 - **Preparing offline previews.** Read [Local drafts](drafts.md) for durable revisions and document snapshots without sending.
 - **Inspecting retained attempts.** Read [Outbound operations](outbound.md) for offline evidence queries and explicit dispatch of a reviewed revision/hash.
 - **Sending from scripts.** Read [Send](send.md) for recipient resolution, channels, status broadcasts, replies, mentions, files, and reactions.
-- **Mirroring address-book names.** Read [Contacts import-system](contacts-import-system.md) to import macOS Contacts display names into local wacli metadata.
+- **Mirroring address-book names.** Read [Contacts import-system](contacts-import-system.md) to import macOS Contacts display names into local whatscli metadata.
 - **Wiring up an agent.** Use the [Agent output contract](agent.md) for bounded offline queries, explicit archive identity, and stable errors; read [Doctor](doctor.md) for self-checks.
 - **Checking the fork offline.** Use [Offline acceptance](offline-acceptance.md) for the generic requirement matrix and fixture recipe, and [Fork maintenance](fork-maintenance.md) for reviewed upstream updates.
 - **Building companion tools.** Read [Companion integrations](integrations.md) for safe read-only SQLite and JSON integration patterns.
@@ -37,7 +37,7 @@ A script-friendly WhatsApp CLI built on [`whatsmeow`](https://github.com/tulir/w
 
 ## Status
 
-Core implementation is in place. The [CHANGELOG](https://github.com/openclaw/wacli/blob/main/CHANGELOG.md) tracks shipped behavior. WhatsApp Web is not a published API; expect occasional breakage from upstream protocol changes — `wacli` follows `whatsmeow` upstream.
+Core implementation is in place. The [CHANGELOG](https://github.com/gabrielMalonso/whatscli/blob/main/CHANGELOG.md) tracks shipped behavior. WhatsApp Web is not a published API; expect occasional breakage from upstream protocol changes — `whatscli` follows `whatsmeow` upstream.
 
 ## Out of scope
 
@@ -45,8 +45,12 @@ Core implementation is in place. The [CHANGELOG](https://github.com/openclaw/wac
 - A daemon, MCP server, web UI, or GUI.
 - End-to-end "contact creation" inside WhatsApp; local aliases and tags only.
 
+## Credits
+
+WhatsCLI is developed and maintained by [Gabriel Monteiro Alonso](https://github.com/gabrielMalonso), derived from [WACLI](https://github.com/openclaw/wacli) by [Peter Steinberger](https://github.com/steipete), its upstream maintainers and contributors. WACLI was inspired by [Vicente Reig’s whatsapp-cli](https://github.com/vicentereig/whatsapp-cli); protocol support comes from [Tulir Asokan’s whatsmeow](https://github.com/tulir/whatsmeow). Original history and MIT attribution are preserved.
+
 ## Disclaimer
 
-`wacli` is a third-party tool that uses the WhatsApp Web protocol via `whatsmeow`. It is **not affiliated with WhatsApp or Meta**. Use at your own risk; pairing as a linked device is subject to WhatsApp's terms.
+`whatscli` is a third-party tool that uses the WhatsApp Web protocol via `whatsmeow`. It is **not affiliated with WhatsApp or Meta**. Use at your own risk; pairing as a linked device is subject to WhatsApp's terms.
 
-Released under the [MIT license](https://github.com/openclaw/wacli/blob/main/LICENSE).
+Released under the [MIT license](https://github.com/gabrielMalonso/whatscli/blob/main/LICENSE).

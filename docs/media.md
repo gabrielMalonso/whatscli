@@ -2,19 +2,19 @@
 
 Read when: downloading media from a synced message or explicitly transcribing a local file.
 
-`wacli media` downloads media referenced by messages already stored in `wacli.db`.
+`whatscli media` downloads media referenced by messages already stored in `wacli.db`.
 Complementary `media transcribe` processes an explicit local file through a caller-selected executable; it does not require a message or archive.
 
 ## Commands
 
 ```bash
-wacli media download --chat JID --id MSG_ID [--output PATH]
-wacli media backfill [--chat JID] [--limit N] [--workers N]
-wacli media retry [--chat JID] [--before YYYY-MM-DD] [--limit N] [--batch N] [--wait DUR]
-wacli --agent media status --chat JID --id MSG_ID [--verify] [--output PATH]
-wacli --agent media download --chat JID --id MSG_ID --output PATH
-wacli --agent media retry --chat JID --id MSG_ID --output PATH [--wait DUR]
-wacli media transcribe --file PATH --adapter /absolute/executable [--expect-sha256 HEX] [--mime-type MIME] --agent
+whatscli media download --chat JID --id MSG_ID [--output PATH]
+whatscli media backfill [--chat JID] [--limit N] [--workers N]
+whatscli media retry [--chat JID] [--before YYYY-MM-DD] [--limit N] [--batch N] [--wait DUR]
+whatscli --agent media status --chat JID --id MSG_ID [--verify] [--output PATH]
+whatscli --agent media download --chat JID --id MSG_ID --output PATH
+whatscli --agent media retry --chat JID --id MSG_ID --output PATH [--wait DUR]
+whatscli media transcribe --file PATH --adapter /absolute/executable [--expect-sha256 HEX] [--mime-type MIME] --agent
 ```
 
 ## download
@@ -33,10 +33,10 @@ Downloads media for a single message.
 ### Examples
 
 ```bash
-wacli media download --chat 1234567890@s.whatsapp.net --id ABC123
-wacli media download --chat 1234567890@s.whatsapp.net --id ABC123 --output ./downloads
-wacli media download --chat 1234567890@s.whatsapp.net --id ABC123 --output ./photo.jpg
-wacli --read-only media download --chat 1234567890@s.whatsapp.net --id ABC123 --output /tmp/photo.jpg
+whatscli media download --chat 1234567890@s.whatsapp.net --id ABC123
+whatscli media download --chat 1234567890@s.whatsapp.net --id ABC123 --output ./downloads
+whatscli media download --chat 1234567890@s.whatsapp.net --id ABC123 --output ./photo.jpg
+whatscli --read-only media download --chat 1234567890@s.whatsapp.net --id ABC123 --output /tmp/photo.jpg
 ```
 
 ## Agent status and download
@@ -44,9 +44,9 @@ wacli --read-only media download --chat 1234567890@s.whatsapp.net --id ABC123 --
 These two commands select one exact stored chat JID and message ID. They open only the current-schema archive read-only, even without `--read-only`. They need no authenticated session, LOCK or owner IPC and work alongside `sync --follow`. They do not initialize or migrate archives, pair, sync, backfill, retry, or update `local_path`/`downloaded_at`. Download's explicit output file is the existing read-only policy exception; `recorded=false` describes the archive update policy. Legacy commands and JSON/overwrite behavior remain unchanged.
 
 ```bash
-wacli --agent media status --chat 1234567890@s.whatsapp.net --id ABC123
-wacli --agent media status --chat 1234567890@s.whatsapp.net --id ABC123 --verify
-wacli --agent media download --chat 1234567890@s.whatsapp.net --id ABC123 --output ./downloads/photo.jpg
+whatscli --agent media status --chat 1234567890@s.whatsapp.net --id ABC123
+whatscli --agent media status --chat 1234567890@s.whatsapp.net --id ABC123 --verify
+whatscli --agent media download --chat 1234567890@s.whatsapp.net --id ABC123 --output ./downloads/photo.jpg
 ```
 
 `status` performs no network or filesystem writes. `--verify` reads and hashes at most 100 MiB. Optional `--output` observes that destination as well, without creating directories. A stat-only observation is `existing/not_checked`, never verified. A matching stored plaintext SHA-256 gives `verified/sha256_verified`; `checks` names successful `sha256` and, only when positive, `declared_size` checks. Legacy declared length zero means unknown (`declared_bytes=null`), not an exact zero-byte claim. Local byte counts are independently measured. Missing/malformed hash leaves binding unknown even if a size check succeeds. Size/hash mismatches are explicit verification observations.
@@ -66,8 +66,8 @@ Standalone writable media commands record recovery debt for mirrored AppState co
 ## Exact agent retry
 
 ```bash
-wacli media retry --chat 1234567890@s.whatsapp.net --id ABC123 --output ./downloads/photo.jpg --agent
-wacli --agent --timeout 2m media retry --chat 1234567890@s.whatsapp.net --id ABC123 --output ./downloads/photo.jpg --wait 30s
+whatscli media retry --chat 1234567890@s.whatsapp.net --id ABC123 --output ./downloads/photo.jpg --agent
+whatscli --agent --timeout 2m media retry --chat 1234567890@s.whatsapp.net --id ABC123 --output ./downloads/photo.jpg --wait 30s
 ```
 
 This explicitly selects **one stored chat JID and message ID**. Both and `--output` are required. Names, bare phones, guessed aliases and bulk selection are not accepted. Explicit `--before`, `--limit` or `--batch` fail even when empty, zero or equal to the legacy default. The exact `--id`/`--output` flags require `--agent`; legacy retry without them retains its bulk selection, JSON, permissions and writer behavior. There is no scan of pending candidates: the composite indexed getter selects the requested row, even if an old `local_path` points to an absent file or `media_unavailable_at` retains a past failure. Tombstones (including nonpositive deletion dates), negative declared sizes, unsupported types and unverified bindings are refused.
@@ -95,13 +95,13 @@ Validation uses synthetic archives, App/WAFactory fakes and local HTTP/crypto fi
 ## Explicit local transcription
 
 ```bash
-wacli --store /path/to/selected-identity media transcribe --file ./audio.ogg --adapter /absolute/executable --agent
-wacli media transcribe --file ./audio --adapter /absolute/executable --mime-type audio/ogg --expect-sha256 LOWERCASE_SHA256 --agent --detail full --read-only
+whatscli --store /path/to/selected-identity media transcribe --file ./audio.ogg --adapter /absolute/executable --agent
+whatscli media transcribe --file ./audio --adapter /absolute/executable --mime-type audio/ogg --expect-sha256 LOWERCASE_SHA256 --agent --detail full --read-only
 ```
 
-There is no default transcription provider. An omitted/empty `--adapter` returns `adapter_not_configured` (exit 2); wacli does not discover, install, download, substitute or retry an adapter. Transcription is an explicit complementary command, never an automatic download step. It needs `--agent` and accepts no positional arguments. Global timeout defaults to 300 seconds and must be positive and at most 300 seconds, covering reading and execution.
+There is no default transcription provider. An omitted/empty `--adapter` returns `adapter_not_configured` (exit 2); whatscli does not discover, install, download, substitute or retry an adapter. Transcription is an explicit complementary command, never an automatic download step. It needs `--agent` and accepts no positional arguments. Global timeout defaults to 300 seconds and must be positive and at most 300 seconds, covering reading and execution.
 
-The input must be a regular local file of at most 25 MiB. The command reuses agent roots/descriptor confinement: configured `WACLI_MEDIA_ROOTS` symlink boundaries resolve once, links beneath the boundary are refused, and selected-store control paths/hardlinks are excluded. Missing stores are not created. Selected account/store is envelope identity only; account selection can read its registry, while the command opens no archive, session, credentials, LOCK or owner IPC and makes no WhatsApp connection. Control-file identities are compared using filesystem metadata without reading their contents. Readonly flag/env is supported because wacli does not write the archive; it does not sandbox the selected executable.
+The input must be a regular local file of at most 25 MiB. The command reuses agent roots/descriptor confinement: configured `WACLI_MEDIA_ROOTS` symlink boundaries resolve once, links beneath the boundary are refused, and selected-store control paths/hardlinks are excluded. Missing stores are not created. Selected account/store is envelope identity only; account selection can read its registry, while the command opens no archive, session, credentials, LOCK or owner IPC and makes no WhatsApp connection. Control-file identities are compared using filesystem metadata without reading their contents. Readonly flag/env is supported because whatscli does not write the archive; it does not sandbox the selected executable.
 
 The input is opened once, read in bounded chunks with context checks and a 25 MiB cap, and rechecked for detectable path/descriptor identity, size and modification changes. Kernel filesystem calls are not an arbitrary-filesystem interruption guarantee. A private in-memory copy is hashed and passed on stdin: `input.bytes` and `input.sha256` describe **those same observed bytes**. Optional `--expect-sha256` requires canonical lowercase SHA-256 and mismatch prevents execution. No later path reopen supplies the adapter. These checks do not promise an immutable audio file or an atomic snapshot against an authorized concurrent writer. Memory includes the bounded read buffer and private input copy, plus capped streams/JSON; 25 MiB is an input limit, not a total process RSS limit.
 
@@ -115,9 +115,9 @@ stdin: exact observed file bytes, followed by EOF
 stdout: {"schema_version":1,"text":"...","language":"pt-BR"}
 ```
 
-The executable path must be absolute, regular and executable (on Windows, a native `.exe`). Wacli starts it directly through `exec.CommandContext`, without a shell, command template or extra user argv. File paths, URLs, keys and binary/base64 are not put in argv or the result envelope. `input.path` is the caller's explicit requested input-path exception. `language` is optional in adapter stdout and bounded to 64 UTF-8 bytes. The single JSON object must have version 1 and a present string `text`; missing/null/wrong-type text, null/wrong-type language, unknown fields, duplicate keys, malformed/raw-invalid-UTF-8 JSON and trailing values fail. Total stdout is capped during reading at 256 KiB and decoded text at 128 KiB. Empty or whitespace-only text returns status `empty`: it establishes neither successful speech recognition nor silence. Nonempty text returns `completed`, describing adapter protocol completion, not accuracy.
+The executable path must be absolute, regular and executable (on Windows, a native `.exe`). WhatsCLI starts it directly through `exec.CommandContext`, without a shell, command template or extra user argv. File paths, URLs, keys and binary/base64 are not put in argv or the result envelope. `input.path` is the caller's explicit requested input-path exception. `language` is optional in adapter stdout and bounded to 64 UTF-8 bytes. The single JSON object must have version 1 and a present string `text`; missing/null/wrong-type text, null/wrong-type language, unknown fields, duplicate keys, malformed/raw-invalid-UTF-8 JSON and trailing values fail. Total stdout is capped during reading at 256 KiB and decoded text at 128 KiB. Empty or whitespace-only text returns status `empty`: it establishes neither successful speech recognition nor silence. Nonempty text returns `completed`, describing adapter protocol completion, not accuracy.
 
-Stderr is privately bounded to 8 KiB while excess is drained; raw stdout/stderr, signals, argv and private causes never appear in errors. Nonzero exit, start/pipe failure, timeout/cancellation or invalid/oversized output fail without storing a transcript. Oversized stdout terminates the direct adapter; context cancellation and a 250 ms `WaitDelay` bound pipe waits, including inherited pipes. This does not promise termination of arbitrary descendants. **The selected executable is not a sandbox:** it can make its own network requests, read other files, use inherited environment credentials, write files or launch processes. `source=local` describes this capability's local input/processing path, not a guarantee of no network or external writes. Adapter effects are not rolled back by failure, cancellation or lost output. Wacli itself sends no input/MIME/transcript to a service.
+Stderr is privately bounded to 8 KiB while excess is drained; raw stdout/stderr, signals, argv and private causes never appear in errors. Nonzero exit, start/pipe failure, timeout/cancellation or invalid/oversized output fail without storing a transcript. Oversized stdout terminates the direct adapter; context cancellation and a 250 ms `WaitDelay` bound pipe waits, including inherited pipes. This does not promise termination of arbitrary descendants. **The selected executable is not a sandbox:** it can make its own network requests, read other files, use inherited environment credentials, write files or launch processes. `source=local` describes this capability's local input/processing path, not a guarantee of no network or external writes. Adapter effects are not rolled back by failure, cancellation or lost output. WhatsCLI itself sends no input/MIME/transcript to a service.
 
 Agent data is explicit `text`, nullable `language`, `status`, `input={path,bytes,sha256}` and `text_truncated`. Compact text has at most 320 Unicode code points; full retains the bounded text. Existing whole-envelope caps remain 1 MiB compact / 8 MiB full. Full retrieval requires a new explicit invocation, which executes the adapter again; no transcript, journal, automatic recovery or replay exists. Broken stdout returns `output_failed` (exit 1) and never implies rollback.
 
@@ -145,10 +145,10 @@ the sync session. Media for messages synced earlier is never fetched by sync;
 ### Examples
 
 ```bash
-wacli media backfill                                   # download all pending media
-wacli media backfill --limit 50                        # download the 50 newest pending
-wacli media backfill --chat 1234567890@s.whatsapp.net  # one chat only
-wacli media backfill --json                            # machine-readable counts
+whatscli media backfill                                   # download all pending media
+whatscli media backfill --limit 50                        # download the 50 newest pending
+whatscli media backfill --chat 1234567890@s.whatsapp.net  # one chat only
+whatscli media backfill --json                            # machine-readable counts
 ```
 
 ## retry
@@ -180,8 +180,8 @@ also confirmed expired, so later runs can skip genuinely unavailable rows.
 ### Examples
 
 ```bash
-wacli media retry                                    # try to recover all pending media
-wacli media retry --chat 1234567890@s.whatsapp.net   # one chat only
-wacli media retry --before 2026-01-01                # only media older than a date
-wacli media retry --limit 50 --wait 45s --json       # bounded run, machine-readable
+whatscli media retry                                    # try to recover all pending media
+whatscli media retry --chat 1234567890@s.whatsapp.net   # one chat only
+whatscli media retry --before 2026-01-01                # only media older than a date
+whatscli media retry --limit 50 --wait 45s --json       # bounded run, machine-readable
 ```

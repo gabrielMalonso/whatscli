@@ -1,26 +1,26 @@
 # docs
 
-Read when: opening the hosted documentation site from the CLI.
+Read when: opening this fork’s documentation from the CLI.
 
-`wacli docs` prints the canonical hosted documentation URL: <https://wacli.sh>.
+`whatscli docs` prints this fork’s source documentation URL: <https://github.com/gabrielMalonso/whatscli/tree/main/docs>.
 Use it from scripts or terminal sessions when you need a stable pointer to the
-GitHub Pages documentation.
+documentation in this repository; a WhatsCLI hosted domain has not been configured.
 
 ## Command
 
 ```bash
-wacli docs
+whatscli docs
 ```
 
 ## JSON
 
 ```bash
-wacli --json docs
+whatscli --json docs
 ```
 
 ## Examples
 
 ```bash
-wacli docs
-open "$(wacli docs)"
+whatscli docs
+open "$(whatscli docs)"
 ```

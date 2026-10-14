@@ -21,11 +21,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build image
-        run: docker build --pull -t wacli:ci .
+        run: docker build --pull -t whatscli:ci .
 
       - name: Smoke test image
         run: |
           set -euo pipefail
-          docker run --rm wacli:ci --version
-          docker run --rm wacli:ci --help
-          docker run --rm --entrypoint ffmpeg wacli:ci -version
+          docker run --rm whatscli:ci --version
+          docker run --rm whatscli:ci --help
+          docker run --rm --entrypoint ffmpeg whatscli:ci -version

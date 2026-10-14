@@ -81,7 +81,7 @@ function validateReleaseIdentity(metadata, { releaseId, tag, commit, version, ex
   if (Number(metadata.id) !== Number(releaseId)) throw new Error(`GitHub returned the wrong ${label} ID`);
   if (metadata.tag_name !== tag) throw new Error(`${label} tag mismatch`);
   if (metadata.target_commitish !== commit) throw new Error(`${label} target commit mismatch`);
-  if (metadata.name !== `wacli ${tag}`) throw new Error(`${label} title mismatch`);
+  if (metadata.name !== `whatscli ${tag}`) throw new Error(`${label} title mismatch`);
   if (normalizeReleaseBody(metadata.body) !== normalizeReleaseBody(expectedBody)) {
     throw new Error(`${label} notes do not match the selected commit changelog`);
   }

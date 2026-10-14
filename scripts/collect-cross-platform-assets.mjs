@@ -34,7 +34,7 @@ export function collectCrossPlatformAssets({
   const expected = crossPlatformArchiveNames(version);
   const releaseLike = fs
     .readdirSync(sourceDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && /^wacli_.+_(?:linux|windows)_/.test(entry.name))
+    .filter((entry) => entry.isFile() && /^whatscli_.+_(?:linux|windows)_/.test(entry.name))
     .map((entry) => entry.name);
   assertExactInventory(releaseLike, expected, "cross-platform build");
 
@@ -44,11 +44,11 @@ export function collectCrossPlatformAssets({
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wacli-cross-verify-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "whatscli-cross-verify-"));
   try {
     for (const name of expected) {
       const archive = path.join(sourceDir, name);
-      const binaryName = name.includes("windows") ? "wacli.exe" : "wacli";
+      const binaryName = name.includes("windows") ? "whatscli.exe" : "whatscli";
       assertArchiveContents(archive, binaryName, { run });
       const extractDir = path.join(tempDir, name.replace(/[^a-zA-Z0-9_.-]/g, "_"));
       fs.mkdirSync(extractDir);

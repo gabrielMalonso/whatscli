@@ -15,7 +15,7 @@ import (
  "os"
  "path/filepath"
  "time"
- "github.com/openclaw/wacli/internal/store"
+ "github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func main() {
@@ -35,7 +35,7 @@ func main() {
 GO
 gofmt -w "$fixture_dir/fixture.go"
 CGO_ENABLED=1 CGO_CFLAGS="${CGO_CFLAGS:+$CGO_CFLAGS }-Wno-error=missing-braces" go run -tags sqlite_fts5 "$fixture_dir/fixture.go" "$store_dir"
-node --input-type=module - "$store_dir" "${1:-./dist/wacli}" <<'JS'
+node --input-type=module - "$store_dir" "${1:-./dist/whatscli}" <<'JS'
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {readFileSync,readdirSync,statSync,lstatSync,chmodSync} from 'node:fs';

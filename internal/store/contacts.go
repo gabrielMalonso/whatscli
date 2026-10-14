@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openclaw/wacli/internal/store/storedb"
+	"github.com/gabrielMalonso/whatscli/internal/store/storedb"
 )
 
 // OpenContactReadConn leases a dedicated, validated read-only connection. Its

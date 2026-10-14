@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/sqliteutil"
+	"github.com/gabrielMalonso/whatscli/internal/store/storedb"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/openclaw/wacli/internal/fsutil"
-	"github.com/openclaw/wacli/internal/sqliteutil"
-	"github.com/openclaw/wacli/internal/store/storedb"
 )
 
 type DB struct {
@@ -36,7 +36,7 @@ func open(path string, readOnly bool) (*DB, error) {
 	}
 	if readOnly {
 		if _, err := os.Stat(path); err != nil {
-			return nil, fmt.Errorf("read local store (initialize explicitly with wacli auth or sync; these commands may connect to WhatsApp): %w", err)
+			return nil, fmt.Errorf("read local store (initialize explicitly with whatscli auth or sync; these commands may connect to WhatsApp): %w", err)
 		}
 	} else {
 		if err := checkWritableSchema(path); err != nil {
@@ -111,7 +111,7 @@ func checkWritableSchema(path string) error {
 			return err
 		}
 		if version < 1 || version > current {
-			return fmt.Errorf("local store schema %d is unknown or newer than supported schema %d; upgrade wacli before writing", version, current)
+			return fmt.Errorf("local store schema %d is unknown or newer than supported schema %d; upgrade whatscli before writing", version, current)
 		}
 	}
 	return rows.Err()
@@ -138,7 +138,7 @@ func (d *DB) validateReadableContext(ctx context.Context) error {
 		return err
 	}
 	if !hasMigrations {
-		return fmt.Errorf("local store has no schema version; an explicit writable upgrade with wacli auth or sync is required (these commands may connect to WhatsApp)")
+		return fmt.Errorf("local store has no schema version; an explicit writable upgrade with whatscli auth or sync is required (these commands may connect to WhatsApp)")
 	}
 	var first, version, applied int
 	if err := d.sql.QueryRowContext(ctx, "SELECT COALESCE(MIN(version), 0), COALESCE(MAX(version), 0), COUNT(*) FROM schema_migrations").Scan(&first, &version, &applied); err != nil {
@@ -146,13 +146,13 @@ func (d *DB) validateReadableContext(ctx context.Context) error {
 	}
 	current := schemaMigrations[len(schemaMigrations)-1].version
 	if version < current {
-		return fmt.Errorf("local store schema %d is older than required schema %d; an explicit writable upgrade with wacli auth or sync is required (these commands may connect to WhatsApp)", version, current)
+		return fmt.Errorf("local store schema %d is older than required schema %d; an explicit writable upgrade with whatscli auth or sync is required (these commands may connect to WhatsApp)", version, current)
 	}
 	if version > current {
-		return fmt.Errorf("local store schema %d is newer than supported schema %d; upgrade wacli to read it", version, current)
+		return fmt.Errorf("local store schema %d is newer than supported schema %d; upgrade whatscli to read it", version, current)
 	}
 	if applied != len(schemaMigrations) {
-		return fmt.Errorf("local store schema has missing migrations; an explicit writable upgrade with wacli auth or sync is required (these commands may connect to WhatsApp)")
+		return fmt.Errorf("local store schema has missing migrations; an explicit writable upgrade with whatscli auth or sync is required (these commands may connect to WhatsApp)")
 	}
 	// The version primary key makes bounds and count sufficient for the full set.
 	if first != schemaMigrations[0].version {

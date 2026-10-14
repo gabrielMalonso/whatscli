@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/out"
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 	"go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"

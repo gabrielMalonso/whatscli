@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gabrielMalonso/whatscli/internal/store"
 	"github.com/mattn/go-sqlite3"
-	"github.com/openclaw/wacli/internal/store"
 )
 
 // Opt-in evidence for SQLite's parser re-evaluation. Both plans consume the

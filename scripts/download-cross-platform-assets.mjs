@@ -85,7 +85,7 @@ export function validateCrossPlatformControlPlane({
   ) {
     throw new Error("cross-platform workflow run provenance mismatch");
   }
-  const expectedName = `wacli-${version}-cross-${commit}`;
+  const expectedName = `whatscli-${version}-cross-${commit}`;
   if (
     Number(artifact.id) !== numericArtifactId ||
     artifact.name !== expectedName ||
@@ -216,7 +216,7 @@ export function validateAuthenticatedCrossPlatformDirectory({
     authenticated.run_attempt <= 0 ||
     !Number.isInteger(authenticated.artifact_id) ||
     authenticated.artifact_id <= 0 ||
-    authenticated.artifact_name !== `wacli-${version}-cross-${commit}`
+    authenticated.artifact_name !== `whatscli-${version}-cross-${commit}`
   ) {
     throw new Error("authenticated cross-platform manifest coordinates mismatch");
   }
@@ -283,7 +283,7 @@ function main() {
     version: args.version,
   });
 
-  const tempRoot = fs.mkdtempSync(path.join(path.dirname(outputDir), ".wacli-cross-download-"));
+  const tempRoot = fs.mkdtempSync(path.join(path.dirname(outputDir), ".whatscli-cross-download-"));
   try {
     const artifactZip = path.join(tempRoot, "artifact.zip");
     downloadArtifact(artifactId, artifactZip);

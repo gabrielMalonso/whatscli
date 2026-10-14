@@ -9,7 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 // BackfillMediaOptions controls a one-shot backfill of media already recorded in

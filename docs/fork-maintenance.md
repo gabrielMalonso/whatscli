@@ -2,9 +2,11 @@
 
 Read when: preparing a fork PR or reviewing an upstream update without publishing to upstream.
 
-`origin` is [gabrielMalonso/wacli](https://github.com/gabrielMalonso/wacli), the only push/PR destination in this workflow. `upstream` is [openclaw/wacli](https://github.com/openclaw/wacli), for read/fetch only; keep its push URL disabled. Verify `git remote -v` before pushing. Existing upstream release/site links do not authorize upstream writes or deployment.
+`origin` is [gabrielMalonso/whatscli](https://github.com/gabrielMalonso/whatscli), the only push/PR destination in this workflow. `upstream` is [openclaw/wacli](https://github.com/openclaw/wacli), for read/fetch only; keep its push URL disabled. Verify `git remote -v` before pushing. WhatsCLI is hosted at `gabrielMalonso/whatscli`; GitHub redirects the previous `gabrielMalonso/wacli` address. Use the new URL for clones, the Go module and local remotes. Keep documentation and module URLs aligned with the actual repository. Upstream credits do not authorize upstream writes or deployment.
 
 Use short, focused branches from current fork `main`, a Conventional Commit, and an origin PR targeting `main`. Keep changes scoped, obtain maintainer review and pass the exact gate below. There is no automatic merge, release, deploy or tag creation. Dependencies, tooling and CI changes require explicit maintainer authorization.
+
+WhatsCLI's code ownership points to `@gabrielMalonso`. The inherited OpenClaw publisher and ClawSweeper dispatch are restricted to the upstream repository; this fork does not publish through the upstream tap or dispatch its issue/PR events to that service. Existing runner labels remain infrastructure references, not the product name.
 
 For an upstream update, fetch into remote-tracking refs, then inspect `origin/main..upstream/main`. Select an existing local toolchain; use the [offline acceptance recipe](offline-acceptance.md) to isolate fixtures. In a clean, separate checkout/worktree, create a short branch from current `origin/main` and merge the reviewed upstream commit normally. Inspect every conflict against the fork's [agent](agent.md), [draft](drafts.md), [outbound](outbound.md), [history](history.md), [chat](chats.md) and [media](media.md) contracts; unresolved scope/behavior changes go to the maintainer before implementation. Preserve active work, avoid force-push/rebase of published history, and never run upstream deployment or tag workflows automatically.
 

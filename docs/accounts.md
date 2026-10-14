@@ -2,23 +2,23 @@
 
 Read when: using more than one WhatsApp account, choosing the active account, or migrating from manual `--store` directories.
 
-`wacli accounts` manages named accounts. Each account is an isolated store directory with its own WhatsApp linked-device session, local mirror database, media files, and lock.
+`whatscli accounts` manages named accounts. Each account is an isolated store directory with its own WhatsApp linked-device session, local mirror database, media files, and lock.
 
 ## Commands
 
 ```bash
-wacli accounts list
-wacli accounts add NAME [--no-auth]
-wacli accounts use NAME
-wacli accounts show NAME
-wacli accounts remove NAME
+whatscli accounts list
+whatscli accounts add NAME [--no-auth]
+whatscli accounts use NAME
+whatscli accounts show NAME
+whatscli accounts remove NAME
 ```
 
 Use a named account with any command:
 
 ```bash
-wacli --account work chats list
-wacli --account personal send text --to 1234567890 --message "hi"
+whatscli --account work chats list
+whatscli --account personal send text --to 1234567890 --message "hi"
 ```
 
 ## Strict invocation binding
@@ -26,12 +26,12 @@ wacli --account personal send text --to 1234567890 --message "hi"
 Use `-a NAME` (or `--for-account NAME`) to bind one invocation to an **existing configured account**, with protection against additional conflicting selectors. First inspect the registry without binding; choose the exact name from that output:
 
 ```bash
-wacli --read-only accounts list --json
+whatscli --read-only accounts list --json
 wacli_account='work' # Replace with the exact reviewed existing name.
 : "${wacli_account:?Select an existing account}"
-wacli -a "$wacli_account" --read-only --agent auth status
-wacli --for-account "$wacli_account" --read-only --agent messages list --limit 20
-wacli -a "$wacli_account" --read-only --json chats list
+whatscli -a "$wacli_account" --read-only --agent auth status
+whatscli --for-account "$wacli_account" --read-only --agent messages list --limit 20
+whatscli -a "$wacli_account" --read-only --json chats list
 ```
 
 - The name is mandatory and uses the grammar below; whitespace is rejected, not trimmed. Missing/invalid config or an unknown name fails without fallback, creation or connection. Resolving an entry does not certify that its archive exists, has a compatible schema, is paired or is online.
@@ -76,6 +76,6 @@ Account names may contain letters, digits, `.`, `_`, and `-`, and must start wit
 ## Notes
 
 - `accounts add NAME` creates the isolated store and then runs the normal auth/bootstrap flow for that account. Use `--no-auth` to only write config and create the store.
-- Locks are per account store, so `wacli --account personal sync --follow` and `wacli --account work chats list` do not block each other unless they share the same store path.
+- Locks are per account store, so `whatscli --account personal sync --follow` and `whatscli --account work chats list` do not block each other unless they share the same store path.
 - Cross-account search or status should be explicit aggregate commands, not accidental shared database queries.
 - Use `--store DIR` for one-off migration/debugging against an old manual store.

@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 
-	"github.com/openclaw/wacli/internal/store"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow/types"
 )
 

@@ -1,11 +1,11 @@
 version: 2
 
-project_name: wacli
+project_name: whatscli
 
 builds:
   - id: wacli_linux_amd64
-    main: ./cmd/wacli
-    binary: wacli
+    main: ./cmd/whatscli
+    binary: whatscli
     mod_timestamp: "{{ .CommitTimestamp }}"
     env:
       - CGO_ENABLED=1
@@ -22,8 +22,8 @@ builds:
       - amd64
 
   - id: wacli_linux_arm64
-    main: ./cmd/wacli
-    binary: wacli
+    main: ./cmd/whatscli
+    binary: whatscli
     mod_timestamp: "{{ .CommitTimestamp }}"
     env:
       - CGO_ENABLED=1
@@ -41,8 +41,8 @@ builds:
       - arm64
 
   - id: wacli_windows_amd64
-    main: ./cmd/wacli
-    binary: wacli
+    main: ./cmd/whatscli
+    binary: whatscli
     mod_timestamp: "{{ .CommitTimestamp }}"
     env:
       - CGO_ENABLED=1

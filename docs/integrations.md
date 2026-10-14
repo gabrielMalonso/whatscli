@@ -1,8 +1,8 @@
 # companion integrations
 
-Read when: building a local analytics, search, CRM, or agent-side companion tool on top of synced `wacli` data.
+Read when: building a local analytics, search, CRM, or agent-side companion tool on top of synced `whatscli` data.
 
-`wacli` is intentionally useful from scripts without becoming a plugin host. Companion tools should prefer stable CLI output first, then use read-only SQLite access when they need low-latency local queries or their own derived database.
+`whatscli` is intentionally useful from scripts without becoming a plugin host. Companion tools should prefer stable CLI output first, then use read-only SQLite access when they need low-latency local queries or their own derived database.
 
 ## Integration surfaces
 
@@ -24,20 +24,20 @@ A small `wacli-ro` script can save repeated readonly flags. This is a documentat
 #!/bin/sh
 WACLI_READONLY=1
 export WACLI_READONLY
-exec wacli "$@"
+exec whatscli "$@"
 ```
 
-It forwards argv (including empty/literal values), stdin, stdout, stderr and exit status to the selected `wacli` on PATH. It does not parse arguments, bind an account, add `--agent`, retry or use `eval`. The caller must still pass an explicit `--account NAME` or `--store DIR`; normal CLI selection rules apply, including repeated selectors. It offers no protection against choosing another account. `WACLI_READONLY=1` keeps the policy enabled even with `--read-only=false`; existing readonly exceptions still permit requested output files, network downloads, adapter effects and SQLite WAL/SHM bookkeeping. It is not a sandbox or guarantee of zero effects. No shell profile changes or installation are needed to understand this example.
+It forwards argv (including empty/literal values), stdin, stdout, stderr and exit status to the selected `whatscli` on PATH. It does not parse arguments, bind an account, add `--agent`, retry or use `eval`. The caller must still pass an explicit `--account NAME` or `--store DIR`; normal CLI selection rules apply, including repeated selectors. It offers no protection against choosing another account. `WACLI_READONLY=1` keeps the policy enabled even with `--read-only=false`; existing readonly exceptions still permit requested output files, network downloads, adapter effects and SQLite WAL/SHM bookkeeping. It is not a sandbox or guarantee of zero effects. No shell profile changes or installation are needed to understand this example.
 
 ## Store paths
 
 Platform defaults are described in [accounts](accounts.md). Linux uses an absolute `XDG_STATE_HOME` when set, otherwise the XDG state directory with legacy fallback; other platforms use `~/.wacli`. Configured accounts can point elsewhere. Obtain the actual selected path rather than constructing one from an account name. Bind the account from validated task input and reviewed `data.accounts`; the name below is illustrative, not a default:
 
 ```bash
-wacli --read-only accounts list --json
+whatscli --read-only accounts list --json
 wacli_account='example-account' # Replace with the exact requested name reviewed in data.accounts.
 : "${wacli_account:?Select an existing account}"
-wacli --read-only accounts show "$wacli_account" --json
+whatscli --read-only accounts show "$wacli_account" --json
 ```
 
 `accounts list` reports `data.config_path` and each account's `store_dir`; `accounts show` returns `data.store_dir`. Keep `--account NAME` explicit for subsequent archive commands. A manual `--store DIR` cannot be combined with `--account`; `WACLI_STORE_DIR` overrides unselected/default stores, not an explicit account. Agent envelopes report the resolved selected `account.store_ref`.
@@ -45,7 +45,7 @@ wacli --read-only accounts show "$wacli_account" --json
 The store contains two SQLite databases:
 
 - `session.db`: owned by `whatsmeow`; contains linked-device identity and keys.
-- `wacli.db`: owned by `wacli`; contains chats, contacts, groups, messages, status broadcasts, call events, media metadata, and local state.
+- `wacli.db`: owned by `whatscli`; contains chats, contacts, groups, messages, status broadcasts, call events, media metadata, and local state.
 
 Companion tools should not read or write `session.db` unless they are explicitly working on WhatsApp session internals. Never write to `wacli.db` from a companion tool.
 
@@ -53,10 +53,10 @@ For multi-account tools, iterate configured accounts explicitly and annotate der
 
 ## Read-only SQLite
 
-The following Bash example resolves the selected account through the CLI, checks its legacy success envelope, and percent-encodes the complete absolute database path with Python's `Path.as_uri()`. Spaces, Unicode and literal percent signs remain part of the path, not URI syntax. Python 3 and the SQLite CLI are needed only for these direct database examples; normal wacli queries do not require them.
+The following Bash example resolves the selected account through the CLI, checks its legacy success envelope, and percent-encodes the complete absolute database path with Python's `Path.as_uri()`. Spaces, Unicode and literal percent signs remain part of the path, not URI syntax. Python 3 and the SQLite CLI are needed only for these direct database examples; normal whatscli queries do not require them.
 
 ```bash
-wacli_account_json="$(wacli --read-only accounts show "$wacli_account" --json)" || exit "$?"
+wacli_account_json="$(whatscli --read-only accounts show "$wacli_account" --json)" || exit "$?"
 wacli_db_uri="$(printf '%s\n' "$wacli_account_json" | python3 -c '
 import json, sys
 from pathlib import Path
@@ -85,7 +85,7 @@ import subprocess
 import sys
 
 selection = subprocess.run(
-    ["wacli", "--read-only", "accounts", "show", sys.argv[1], "--json"],
+    ["whatscli", "--read-only", "accounts", "show", sys.argv[1], "--json"],
     check=True, capture_output=True, text=True,
 )
 account = json.loads(selection.stdout)
@@ -104,9 +104,9 @@ with closing(sqlite3.connect(db.as_uri() + "?mode=ro", uri=True)) as conn:
     print(json.dumps([dict(row) for row in rows], ensure_ascii=False))
 ```
 
-An absent database fails instead of creating one. Account/store selection failures must stop the query; do not substitute another account or initialize an archive. Direct schema queries need a compatible archive and SQLite build; schema compatibility is checked by wacli's archive readers, not by these snippets.
+An absent database fails instead of creating one. Account/store selection failures must stop the query; do not substitute another account or initialize an archive. Direct schema queries need a compatible archive and SQLite build; schema compatibility is checked by whatscli's archive readers, not by these snippets.
 
-Use normal readonly SQLite when `wacli sync --follow` may write concurrently or start later; absent sidecars do not establish immutability. SQLite may create or update WAL/SHM bookkeeping and fail when required bookkeeping is unavailable. Wacli's readers use `mode=ro`/`query_only` without an immutable fallback; they do not create missing databases/directories/sessions, migrate, chmod, acquire writer LOCK or open WhatsApp. Reads do not share a global snapshot. See [store readonly access](store.md#local-reads-by-default).
+Use normal readonly SQLite when `whatscli sync --follow` may write concurrently or start later; absent sidecars do not establish immutability. SQLite may create or update WAL/SHM bookkeeping and fail when required bookkeeping is unavailable. WhatsCLI's readers use `mode=ro`/`query_only` without an immutable fallback; they do not create missing databases/directories/sessions, migrate, chmod, acquire writer LOCK or open WhatsApp. Reads do not share a global snapshot. See [store readonly access](store.md#local-reads-by-default).
 
 ## Local health and optional FTS checks
 
@@ -140,7 +140,7 @@ SELECT EXISTS(
 
 The supported schema's unique message key normally makes `duplicate_keys` zero. An orphan count is a local relationship observation, not evidence of remote deletion.
 
-FTS is optional: a plain build/archive can have no `messages_fts`, while wacli search falls back to LIKE. Run this separate query only when `fts_table_present=1` **and** the SQLite reader supports FTS5. If it cannot read the table, report that failure rather than treating it as a zero count:
+FTS is optional: a plain build/archive can have no `messages_fts`, while whatscli search falls back to LIKE. Run this separate query only when `fts_table_present=1` **and** the SQLite reader supports FTS5. If it cannot read the table, report that failure rather than treating it as a zero count:
 
 ```sql
 SELECT COUNT(*) AS indexed_messages FROM messages_fts;
@@ -238,17 +238,17 @@ ORDER BY name;
 - Hash JIDs with a tool-local salt if you only need stable identity buckets.
 - Provide a delete or opt-out path if the companion tool tracks people.
 - Do not copy `session.db`, media keys, or WhatsApp device keys into unrelated systems.
-- Use `WACLI_READONLY=1` when shelling out to `wacli` to reject intentional WhatsApp mutations and archive writes by wacli. Requested [message export files](messages.md#export), [media download output](media.md#download), [explicit adapter execution](media.md#explicit-local-transcription), and [SQLite WAL/SHM bookkeeping](store.md#local-reads-by-default) remain permitted. Downloads may use the network; the chosen adapter is not sandboxed and may make network requests or file writes.
+- Use `WACLI_READONLY=1` when shelling out to `whatscli` to reject intentional WhatsApp mutations and archive writes by WhatsCLI. Requested [message export files](messages.md#export), [media download output](media.md#download), [explicit adapter execution](media.md#explicit-local-transcription), and [SQLite WAL/SHM bookkeeping](store.md#local-reads-by-default) remain permitted. Downloads may use the network; the chosen adapter is not sandboxed and may make network requests or file writes.
 
 ## Speaker-tracking pattern
 
 A speaker tracker can stay small and non-invasive:
 
-1. Run `wacli sync --follow` separately to keep the store warm.
+1. Run `whatscli sync --follow` separately to keep the store warm.
 2. Keep a cursor using the largest processed `messages.rowid`.
 3. Read only new rows from `messages` in read-only mode.
 4. Skip `from_me` rows if you only want contacts.
 5. Hash `sender_jid` before writing to the tool database.
 6. Store counts, first/last seen timestamps, and opt-out state in the tool database.
 
-This pattern keeps `wacli` responsible for WhatsApp sync and keeps the companion tool responsible only for its derived local state.
+This pattern keeps `whatscli` responsible for WhatsApp sync and keeps the companion tool responsible only for its derived local state.

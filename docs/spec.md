@@ -2,13 +2,13 @@
 
 Read when: changing command boundaries, storage, synchronization, or protocol handling.
 
-`wacli` pairs as a WhatsApp linked device through `whatsmeow`, mirrors messages into a local SQLite index, and provides offline search alongside authenticated send and chat-management commands. The [overview](overview.md) and command pages describe the current CLI surface; this document records the boundaries behind it.
+`whatscli` pairs as a WhatsApp linked device through `whatsmeow`, mirrors messages into a local SQLite index, and provides offline search alongside authenticated send and chat-management commands. The [overview](overview.md) and command pages describe the current CLI surface; this document records the boundaries behind it.
 
 ## Ownership
 
 | Package | Responsibility |
 | --- | --- |
-| `cmd/wacli` | Cobra commands, flags, validation, output, recipient selection, and local follow-process delegation. |
+| `cmd/whatscli` | Cobra commands, flags, validation, output, recipient selection, and local follow-process delegation. |
 | `internal/app` | Sync lifecycle, event persistence, backfill, media workers, webhooks, and app-state recovery. |
 | `internal/wa` | Whatsmeow client access, JID resolution, protocol construction, and message parsing. |
 | `internal/store` | Local schema, migrations, message queries, identity repair, and search indexing. |
@@ -17,7 +17,7 @@ Read when: changing command boundaries, storage, synchronization, or protocol ha
 
 ## Storage layout
 
-Each store owns two databases: `session.db` contains whatsmeow-managed identities, keys, and protocol state; `wacli.db` contains wacli's searchable mirror. Keep their schemas and lifecycle separate. Named accounts select isolated stores rather than combining account data in one database.
+Each store owns two databases: `session.db` contains whatsmeow-managed identities, keys, and protocol state; `wacli.db` contains whatscli's searchable mirror. Keep their schemas and lifecycle separate. Named accounts select isolated stores rather than combining account data in one database.
 
 The WhatsApp wrapper owns its session database container. Temporary `Disconnect` calls stop the socket while retaining the container for reconnects; permanent `Close` releases it. Application shutdown disconnects first, drains app-state persistence, and then closes both databases. Failed client initialization also releases any container it opened.
 
@@ -60,6 +60,8 @@ Unbound `capabilities --agent` discovers this binary's commands, static support/
 Webhooks run on a bounded worker and preserve their documented payloads and event selection. Companions can also read `wacli.db` in read-only mode. See [integrations](integrations.md) for schemas and supported access patterns.
 
 ## Compatibility boundaries
+
+WhatsCLI retains WACLI’s `WACLI_*` configuration, state directories, `wacli.db` and `session.db`, agent JSON contracts, cursors, hash domains, IPC and transcription protocols, and `X-Wacli-Signature`. The primary executable is `whatscli`; local builds and Docker also provide a `wacli` alias. The rebrand requires no data migration or new pairing.
 
 Public command names, flags, environment variables, JSON fields, account configuration, and persisted data formats are contracts. Preserve them when reorganizing internals, and document intentional compatibility changes in the changelog. Keep source changes within the Go minimum in `go.mod`; the preferred toolchain is a separate build and release pin.
 

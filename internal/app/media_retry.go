@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openclaw/wacli/internal/fsutil"
-	"github.com/openclaw/wacli/internal/store"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"

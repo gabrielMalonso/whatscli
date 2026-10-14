@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure
-- `cmd/wacli/`: CLI command wiring (auth, sync, messages, send, media, contacts, chats, groups, history, presence, doctor).
+- `cmd/whatscli/`: CLI command wiring (auth, sync, messages, send, media, contacts, chats, groups, history, presence, doctor).
 - `internal/app/`: core app, whatsmeow event handling, backfill, sync idle logic.
 - `internal/store/`: SQLite schema, migrations, FTS5 search, chats/contacts/groups/messages/media queries.
 - `internal/wa/`: whatsmeow client wrapper, JID resolution, message parsing (text, business, media, context).
@@ -23,7 +23,7 @@
 
 ## Build, Test, and Development Commands
 - Build: `pnpm build` — compiles with `-tags sqlite_fts5` and `CGO_CFLAGS=-Wno-error=missing-braces` (required for GCC 15+).
-- Run: `pnpm wacli -- <args>` — rebuilds then runs.
+- Run: `pnpm whatscli -- <args>` — rebuilds then runs.
 - Test: `pnpm test` — runs plain and FTS Go tests, the Windows lock/store test cross-compiles, cgo-required build check, and Node documentation/release-script tests.
 - Lint: `pnpm lint` — `go vet ./...`; `make lint` also runs vulnerability checks and `pnpm lint:deadcode` for production and test reachability.
 - Format fix: `pnpm format` — `gofmt -w .`.

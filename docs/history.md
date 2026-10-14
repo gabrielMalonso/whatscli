@@ -2,21 +2,21 @@
 
 Read when: trying to fetch older messages for a known chat.
 
-`wacli history` inspects local archive coverage and can send on-demand history sync requests to the primary device. Backfill is best-effort and depends on the phone being online and WhatsApp returning older messages.
+`whatscli history` inspects local archive coverage and can send on-demand history sync requests to the primary device. Backfill is best-effort and depends on the phone being online and WhatsApp returning older messages.
 
 ## Commands
 
 ```bash
-wacli history coverage [--evidence] [--query TEXT] [--kind KIND] [--include-blocked] [--only-actionable]
-wacli history fill --dry-run [--query TEXT] [--kind KIND] [--limit 100]
-wacli history backfill --chat JID [--before-id MESSAGE_ID] [--count 50] [--requests N] [--wait 1m] [--idle-exit 5s] [--events]
+whatscli history coverage [--evidence] [--query TEXT] [--kind KIND] [--include-blocked] [--only-actionable]
+whatscli history fill --dry-run [--query TEXT] [--kind KIND] [--limit 100]
+whatscli history backfill --chat JID [--before-id MESSAGE_ID] [--count 50] [--requests N] [--wait 1m] [--idle-exit 5s] [--events]
 ```
 
 ## Coverage and planning
 
 - `history coverage` reads only the local `wacli.db` store.
 - `ready` chats have at least one local message, so `history backfill` has an anchor.
-- `blocked` / `no_local_anchor` chats have no local message yet; run `wacli sync` first.
+- `blocked` / `no_local_anchor` chats have no local message yet; run `whatscli sync` first.
 - `history fill --dry-run` lists matching ready chats that would be selected for a future multi-chat fill workflow. It does not connect to WhatsApp or write state.
 
 ## Ingestion diagnostics
@@ -125,7 +125,7 @@ scan, automatic repair, or changes to frozen draft revisions are performed.
 
 ```bash
 # Use an exact ID returned by messages show/list for this selected archive/chat.
-wacli --account example history backfill --chat 1234567890@s.whatsapp.net --before-id REAL_MESSAGE_ID --count 50 --requests 1 --agent
+whatscli --account example history backfill --chat 1234567890@s.whatsapp.net --before-id REAL_MESSAGE_ID --count 50 --requests 1 --agent
 ```
 
 `--before-id` requests up to `--count` messages immediately **before** one genuine
@@ -289,8 +289,8 @@ to history recovery: it is not an operation journal, replay token or automatic
 retry mechanism.
 
 ```bash
-wacli history coverage --chat 123@s.whatsapp.net --evidence --json
-wacli history coverage --chat 123@s.whatsapp.net --agent --evidence --detail full
+whatscli history coverage --chat 123@s.whatsapp.net --evidence --json
+whatscli history coverage --chat 123@s.whatsapp.net --agent --evidence --detail full
 ```
 
 `--evidence` adds a separate `data.recovery_evidence` list to JSON output and a
@@ -371,11 +371,11 @@ at the owner.
 ## Examples
 
 ```bash
-wacli history coverage --include-blocked
-wacli history coverage --query family --only-actionable
-wacli history fill --dry-run --kind group --limit 20
-wacli history backfill --chat 1234567890@s.whatsapp.net --requests 10 --count 50
-wacli history backfill --chat 123456789@g.us --requests 3 --wait 90s
+whatscli history coverage --include-blocked
+whatscli history coverage --query family --only-actionable
+whatscli history fill --dry-run --kind group --limit 20
+whatscli history backfill --chat 1234567890@s.whatsapp.net --requests 10 --count 50
+whatscli history backfill --chat 123456789@g.us --requests 3 --wait 90s
 ```
 
 ## Durable local change notifications

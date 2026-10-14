@@ -2,24 +2,24 @@
 
 Read when: listing known chats, filtering chat state, archiving/pinning/muting/marking chats, or pruning stale local chat rows.
 
-`wacli chats` reads chat rows from `wacli.db`. It can use session-backed PN/LID mappings to make historical `@lid` chat rows display as phone-number chats when possible. State commands normally send WhatsApp app-state patches through the authenticated session and update the local index after the SDK call completes. Explicit receipt mode uses the independent network receipt path described below.
+`whatscli chats` reads chat rows from `wacli.db`. It can use session-backed PN/LID mappings to make historical `@lid` chat rows display as phone-number chats when possible. State commands normally send WhatsApp app-state patches through the authenticated session and update the local index after the SDK call completes. Explicit receipt mode uses the independent network receipt path described below.
 
 Archive and pin persistence reads the SDK's public local ChatSettings cache for the exact observed JID at its ordered persistence turn. This also preserves the SDK's unpin on archive, even if a callback arrives after a newer replay. Missing settings or a cache read error leave recovery debt instead of guessing a value or another identity. The cache is not a fresh remote-state guarantee; unread remains driven by its separate events and read boundaries. Recovery reads state and never repeats a user's mutation.
 
 ## Commands
 
 ```bash
-wacli chats list [--query TEXT] [--limit N] [--archived|--no-archived] [--pinned|--no-pinned] [--muted|--no-muted] [--unread|--no-unread]
-wacli chats show --jid JID
-wacli chats archive --chat CHAT [--pick N]
-wacli chats unarchive --chat CHAT [--pick N]
-wacli chats pin --chat CHAT [--pick N]
-wacli chats unpin --chat CHAT [--pick N]
-wacli chats mute --chat CHAT [--duration DURATION] [--pick N]
-wacli chats unmute --chat CHAT [--pick N]
-wacli chats mark-read --chat CHAT [--pick N] [--receipts]
-wacli chats mark-unread --chat CHAT [--pick N]
-wacli chats cleanup [--days N] [--jid JID] [--dry-run] [--confirm]
+whatscli chats list [--query TEXT] [--limit N] [--archived|--no-archived] [--pinned|--no-pinned] [--muted|--no-muted] [--unread|--no-unread]
+whatscli chats show --jid JID
+whatscli chats archive --chat CHAT [--pick N]
+whatscli chats unarchive --chat CHAT [--pick N]
+whatscli chats pin --chat CHAT [--pick N]
+whatscli chats unpin --chat CHAT [--pick N]
+whatscli chats mute --chat CHAT [--duration DURATION] [--pick N]
+whatscli chats unmute --chat CHAT [--pick N]
+whatscli chats mark-read --chat CHAT [--pick N] [--receipts]
+whatscli chats mark-unread --chat CHAT [--pick N]
+whatscli chats cleanup [--days N] [--jid JID] [--dry-run] [--confirm]
 ```
 
 ## Agent pagination
@@ -56,14 +56,14 @@ No OFFSET, schema or index is added. SQL returns limit+1 rows to Go, but SQLite 
 - Restart an older `sync --follow` process after upgrading before using delegated state commands; older daemons return an unsupported `mark_read` or `chat_state` kind error.
 - State commands print a compact success line by default and a stable JSON object with `--json`.
 - `mute --duration 0` or omitting `--duration` mutes forever. Use `unmute` to clear it.
-- Run `wacli sync` to catch up chat-state changes made on other devices; run `wacli contacts refresh` to improve chat names.
+- Run `whatscli sync` to catch up chat-state changes made on other devices; run `whatscli contacts refresh` to improve chat names.
 - `cleanup` only deletes local `wacli.db` rows. It does not delete chats or messages from WhatsApp.
 - `cleanup --days N` skips chats with no known local activity timestamp; use `--jid` for an explicit local row.
 - Use `cleanup --dry-run` before deleting and `--confirm` only for scripts that already reviewed the target list.
 
 ## Read receipts
 
-Use `wacli chats mark-read --chat CHAT --receipts` to send receipts for stored unread incoming messages. Plain `mark-read` keeps its existing app-state behavior and does not notify message senders. `mark-unread` remains available through a running sync process.
+Use `whatscli chats mark-read --chat CHAT --receipts` to send receipts for stored unread incoming messages. Plain `mark-read` keeps its existing app-state behavior and does not notify message senders. `mark-unread` remains available through a running sync process.
 
 Receipt mode does not wait for app-state recovery, so it can run while the primary phone cannot provide an app-state snapshot. It works directly or through a same-store `sync --follow` process. Restart older sync processes after upgrading: the separate receipt request is rejected by an older daemon before it changes the chat.
 
@@ -79,13 +79,13 @@ The local read boundary advances after every selected batch has dispatched succe
 ## Examples
 
 ```bash
-wacli chats list
-wacli chats list --query family --limit 20
-wacli chats list --pinned
-wacli chats show --jid 1234567890@s.whatsapp.net
-wacli chats mute --chat "+1 555 123 4567" --duration 8h
-wacli chats mark-read --chat family --pick 1
-wacli --agent chats mark-read --chat +15550000001 --timeout 2m
-wacli chats mark-read --chat family --pick 1 --receipts --json
-wacli chats cleanup --days 365 --dry-run
+whatscli chats list
+whatscli chats list --query family --limit 20
+whatscli chats list --pinned
+whatscli chats show --jid 1234567890@s.whatsapp.net
+whatscli chats mute --chat "+1 555 123 4567" --duration 8h
+whatscli chats mark-read --chat family --pick 1
+whatscli --agent chats mark-read --chat +15550000001 --timeout 2m
+whatscli chats mark-read --chat family --pick 1 --receipts --json
+whatscli chats cleanup --days 365 --dry-run
 ```

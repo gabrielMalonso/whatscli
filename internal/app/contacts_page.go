@@ -9,7 +9,7 @@ import (
 	"slices"
 	"unicode/utf8"
 
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 // Contact cursors retain both complete textual sort keys, with bounded decoding.

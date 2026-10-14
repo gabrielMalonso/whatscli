@@ -2,7 +2,7 @@
 
 Read when: running continuous capture, one-shot sync, contact/group refresh, or background media download.
 
-`wacli sync` requires an existing authenticated store and never displays a QR code. It captures WhatsApp Web events into the local SQLite store.
+`whatscli sync` requires an existing authenticated store and never displays a QR code. It captures WhatsApp Web events into the local SQLite store.
 
 For scheduled routines and separate one-off tasks sharing an account, see [concurrent use](concurrent-use.md).
 
@@ -13,8 +13,8 @@ Remote logout stops sync and emits `logged_out`; it retains the existing success
 ## Live owner readiness
 
 ```bash
-wacli -a personal --read-only --agent sync status
-wacli --store /path/to/archive sync status --json --timeout 2s
+whatscli -a personal --read-only --agent sync status
+whatscli --store /path/to/archive sync status --json --timeout 2s
 ```
 
 `sync status` queries the existing `sync --follow` owner's private Unix socket.
@@ -113,13 +113,13 @@ admission path. `app_state` reads debt from the owner's already-open archive and
 recovery observations by collection/phase with sanitized codes. Unknown debt remains
 unknown; no snapshot ACK clears debt or confirms remote application.
 
-`stages` contains the latest WACLI invocation per phase/known collection, sorted by
+`stages` contains the latest WhatsCLI invocation per phase/known collection, sorted by
 start time: overall `bootstrap`, `connect`, `lid_migration`, `metadata`, optional
 `refresh_contacts/groups/channels`, collection `lock_wait`, `delta`, `delta_fetch`,
 `full_sync` and `snapshot`. `started_at`, nullable `finished_at`, `elapsed_ms` and
-nullable `budget_ms` measure the WACLI call or its current wait. Budget is the
+nullable `budget_ms` measure the WhatsCLI call or its current wait. Budget is the
 remaining context deadline at stage entry, or null when there is none; an internal
-SDK timeout without a WACLI deadline is unknown. Fetch includes ordered local
+SDK timeout without a WhatsCLI deadline is unknown. Fetch includes ordered local
 persistence; snapshot includes the recovery exchange and persistence. SDK mutex,
 blob and CDN durations cannot be separated and are not reported. Durations can
 exceed a budget when the SDK/persistence does not stop at cancellation. A returned
@@ -187,7 +187,7 @@ prerequisites (timing stages and historical observations omitted):
 ## Command
 
 ```bash
-wacli sync [--once] [--follow] [--idle-exit 30s] [--max-reconnect 5m] [--stale-threshold DURATION] [--presence-mode normal|quiet] [--send-spacing DURATION|MIN-MAX] [--max-messages N] [--max-db-size SIZE] [--download-media] [--refresh-contacts] [--refresh-groups] [--refresh-channels] [--events] [--webhook URL] [--webhook-secret SECRET] [--webhook-events LIST]
+whatscli sync [--once] [--follow] [--idle-exit 30s] [--max-reconnect 5m] [--stale-threshold DURATION] [--presence-mode normal|quiet] [--send-spacing DURATION|MIN-MAX] [--max-messages N] [--max-db-size SIZE] [--download-media] [--refresh-contacts] [--refresh-groups] [--refresh-channels] [--events] [--webhook URL] [--webhook-secret SECRET] [--webhook-events LIST]
 ```
 
 ## Modes
@@ -196,7 +196,7 @@ wacli sync [--once] [--follow] [--idle-exit 30s] [--max-reconnect 5m] [--stale-t
 - `--once` exits after sync becomes idle.
 - `--idle-exit` controls idle exit timing in once mode. Idle exit waits for admitted event callbacks, including history downloads and persistence, and starts a fresh idle window after their activity finishes. Cancellation, supplied context deadlines, logout and storage-limit exits still stop without this idle wait. A stalled callback requires interruption or an external deadline; the global `--timeout` flag applies to non-sync commands and does not bound sync. Cleanup still drains known local writers before closing the archive; a callback that ignores cancellation can delay cleanup.
 - `--max-reconnect 0` keeps reconnecting indefinitely.
-- If WhatsApp revokes the linked session, sync emits a terminal `logged_out` event, cancels any reconnect already in progress, and exits cleanly. Re-pair with `wacli auth logout` followed by `wacli auth --phone`.
+- If WhatsApp revokes the linked session, sync emits a terminal `logged_out` event, cancels any reconnect already in progress, and exits cleanly. Re-pair with `whatscli auth logout` followed by `whatscli auth --phone`.
 - `--max-messages N` stops before storing more than `N` total messages locally.
 - `--max-db-size SIZE` stops when `wacli.db` plus SQLite sidecars reaches `SIZE` (`500MB`, `2GB`, etc.).
 - `--download-media` runs a bounded media downloader for sync events. Clean one-shot and bootstrap runs finish queued downloads before exiting; cancellation, errors, and storage-limit exits stop immediately.
@@ -215,14 +215,14 @@ wacli sync [--once] [--follow] [--idle-exit 30s] [--max-reconnect 5m] [--stale-t
   - `poll vote`, `presence typing`, `presence paused`, and `messages edit`.
   - `chats mark-read`, `chats mark-unread`, `chats archive`, `chats unarchive`, `chats pin`, `chats unpin`, `chats mute`, and `chats unmute`.
 - `send status` is not delegated and still requires the direct store lock.
-- After connecting, sync fetches WhatsApp chat app-state deltas (`regular_high` and `regular_low`) so starred, delete-for-me, mute, archive, pin, and mark-read changes made while `wacli` was offline are caught up instead of relying only on live push notifications.
+- After connecting, sync fetches WhatsApp chat app-state deltas (`regular_high` and `regular_low`) so starred, delete-for-me, mute, archive, pin, and mark-read changes made while `whatscli` was offline are caught up instead of relying only on live push notifications.
 - Each startup fetch records recovery debt before the SDK can advance its cursor, persists returned events in order, and clears only its completed generation. A failed page, cancellation or local persistence failure retains debt for a later full replay; normal message handling continues with a warning.
 - Sync records debt for the mirrored `regular_high`, `regular_low` and `regular` collections before removing its persistence handler during shutdown. App close reaffirms debt after closing the session store and draining known local writers, because SDK callbacks can outlive disconnect. Even a graceful stop can therefore require full collection reads on the next startup, within the existing recovery budgets. A shutdown marker failure returns an error and keeps the handler during disconnect; it does not claim a successful durable checkpoint. Recovery never resends a user's chat-state mutation.
 - Sync imports messages sent from your other linked devices into the destination chat with `from_me=true`, so local history covers both incoming and outgoing conversation sides.
 - Sync decrypts encrypted message edits and updates the original local row only when the authenticated sender, chat, and target message match. Malformed, redirected, or unsupported edits are rejected without changing local history or emitting a message webhook.
 - If whatsmeow reports an app-state LTHash mismatch, sync attempts one full refresh for that collection before requesting a phone snapshot. Recovery uses a durable intent and ordered local persistence; interrupted work is replayed at the next startup before incremental fetches. Full refresh and phone recovery have independent timeouts, and each collection gets at most one automatic recovery sequence per sync run. Failed or unconfirmed recovery retains its intent and emits a warning while normal message/history handling continues. Snapshot requests use an ID generated before observation begins. Only a matching protocol response from the exact known own PN/LID primary device is observed; history/re-request events are excluded. Server ACK, correlated response and snapshot completion are different facts: public SDK completion events have no request ID, so neither collection/version nor temporal proximity can attribute them. Snapshot alone therefore never clears debt or authorizes a dependent chat-state mutation, even if the SDK applied it. Real SDK events observed during recovery are still drained into the archive, including standalone calls and error/cancellation paths. A later successful existing full fetch can reconcile; recovery adds no full-fetch retry or repeated mutation. This conservative behavior fixes local certainty, not the remote LTHash cause.
 - Empty app-state key shares are rejected before key storage, and their account-scoped unavailable status is retained in `wacli.db` across client restarts. A later usable key share clears that status. A collection that needs a known empty key uses the bounded full-refresh and phone-snapshot recovery path when it is next fetched or decoded, including one-shot chat-state commands. Ordinary missing keys keep waiting for normal delivery. Snapshot application requires usable keys, but public SDK events cannot confirm its completion for the request. Snapshot recovery preserves debt and prevents the requested chat-state write until an existing full fetch reconciles it.
-- Sync stores WhatsApp call signaling and call-log metadata in `call_events`; inspect it with `wacli calls list`.
+- Sync stores WhatsApp call signaling and call-log metadata in `call_events`; inspect it with `whatscli calls list`.
 - Sync stores WhatsApp status broadcasts in `status_messages`, separate from normal chat `messages`.
 - Sync stores location pins and live-location shares in `message_locations`, keyed by (`chat_jid`, `msg_id`); the message row keeps `media_type=location` (or `live_location`). Pins synced before this table existed have no coordinates and cannot be backfilled.
 - Unreadable messages emit an `undecryptable_message` warning with chat, sender, and message ID. Its `recovery=requested_if_possible` field is conditional: the SDK requests a primary-device copy immediately when ciphertext is absent, or after a short delay on an eligible first decryption failure; repeated failures, cancelled requests, and bot-message secret failures can take different paths. `is_unavailable` also covers missing group sender keys, so it does not identify the exact retry path. Typed unavailable content, including `view_once`, can still prompt a protocol request without guaranteeing a readable copy. Restart an existing `sync --follow` process after upgrading to enable the updated client behavior.
@@ -230,7 +230,7 @@ wacli sync [--once] [--follow] [--idle-exit 30s] [--max-reconnect 5m] [--stale-t
 - `--stale-threshold DURATION` in follow mode detects keepalive failures. If whatsmeow reports that the last successful keepalive is older than this duration, sync force-closes the connection and reconnects. Healthy quiet sessions are not reconnected just because no chat events arrive. Disabled by default (`0`); accepted values are `1s` up to but not including `2m20s`, which reserves one maximum keepalive probe interval plus response deadline before whatsmeow's own 3-minute auto-reconnect window.
 - `--presence-mode normal|quiet` controls global linked-device presence during sync. `normal` is the default and preserves the existing behavior: sync sends available presence after connecting or receiving a push-name update, then sends unavailable presence on cleanup. `quiet` suppresses the available-presence sends while keeping the final unavailable cleanup; use it for personal-number mirrors where keeping primary-phone notifications audible matters. WhatsApp ultimately controls notification routing, so this mode avoids the active linked-device signal but cannot guarantee phone behavior on every platform.
 - A `stale` NDJSON event is emitted when the threshold is exceeded, containing `threshold`, `idle_duration`, `error_count`, and `source` fields.
-- While `sync --follow` is running, a `HEARTBEAT` file is written to the store directory (at most once per minute) with the last observed follow activity timestamp in RFC 3339 format. External watchdogs or `wacli doctor` can read this as an activity marker; quiet healthy sessions may not update it because successful keepalives are silent, and keepalive health is reported separately through `stale` events.
+- While `sync --follow` is running, a `HEARTBEAT` file is written to the store directory (at most once per minute) with the last observed follow activity timestamp in RFC 3339 format. External watchdogs or `whatscli doctor` can read this as an activity marker; quiet healthy sessions may not update it because successful keepalives are silent, and keepalive health is reported separately through `stale` events.
 - `--events` emits one NDJSON lifecycle event per stderr line for machine consumers. Routine human progress/status lines, interrupt prompts, and command errors are emitted as events while events are enabled.
 - `offline_sync_preview` reports the server's announced reconnect backlog with `total`, `messages`, `receipts`, `notifications`, and `app_data_changes`; `offline_sync_completed` reports the server's final `count`. Without `--events`, both print as status lines. Completion can arrive without a preview, including when there is no backlog.
 - These are server replay signals on stderr. Webhooks use a separate background queue, so completion does not mean queued HTTP deliveries have finished. Storage failures or webhook drops can also make delivery counts differ from the announced counts. Do not use these signals to classify individual webhook messages as replayed or live. Webhook payloads keep their existing shape.
@@ -307,18 +307,18 @@ seen) is deliberately not forwarded:
 ## Examples
 
 ```bash
-wacli sync --once
-wacli sync --follow --max-reconnect 10m
-wacli sync --follow --stale-threshold 2m
-wacli sync --follow --presence-mode quiet
-wacli sync --follow --send-spacing 500ms-5s
-wacli sync --follow --max-messages 250000 --max-db-size 2GB
-wacli sync --once --refresh-contacts --refresh-groups --refresh-channels
-wacli sync --follow --download-media
-wacli sync --once --events 2>events.ndjson
-wacli sync --follow --stale-threshold 2m --events 2>events.ndjson
-wacli sync --follow --webhook https://example.com/wacli --webhook-secret "$WACLI_WEBHOOK_SECRET"
-wacli sync --follow --webhook https://example.com/wacli --webhook-events message,receipt,chat_presence
+whatscli sync --once
+whatscli sync --follow --max-reconnect 10m
+whatscli sync --follow --stale-threshold 2m
+whatscli sync --follow --presence-mode quiet
+whatscli sync --follow --send-spacing 500ms-5s
+whatscli sync --follow --max-messages 250000 --max-db-size 2GB
+whatscli sync --once --refresh-contacts --refresh-groups --refresh-channels
+whatscli sync --follow --download-media
+whatscli sync --once --events 2>events.ndjson
+whatscli sync --follow --stale-threshold 2m --events 2>events.ndjson
+whatscli sync --follow --webhook https://example.com/wacli --webhook-secret "$WACLI_WEBHOOK_SECRET"
+whatscli sync --follow --webhook https://example.com/wacli --webhook-events message,receipt,chat_presence
 ```
 
 ## Historical execution checkpoints

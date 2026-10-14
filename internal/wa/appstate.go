@@ -33,7 +33,7 @@ func (c *Client) SendAppState(ctx context.Context, patch appstate.PatchInfo) err
 }
 
 func (c *Client) sendAppStateWithBoundary(ctx context.Context, patch appstate.PatchInfo, beforeApply func()) ([]any, error) {
-	// Reserve wacli persistence before whatsmeow can advance app state. The
+	// Reserve whatscli persistence before whatsmeow can advance app state. The
 	// durable recovery intent remains after return because canonical sends
 	// dispatch their resulting events asynchronously.
 	beforeApply()

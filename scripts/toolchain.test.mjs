@@ -9,6 +9,8 @@ test("build and release gates use the preferred Go toolchain without raising the
   const module = read("go.mod");
   assert.equal(module.match(/^go (\S+)$/m)[1], "1.27.0");
   const version = module.match(/^toolchain go(\S+)$/m)[1];
+  assert.ok(version.localeCompare("1.27.2", "en", { numeric: true }) >= 0,
+    "the preferred toolchain must include the Go 1.27.2 standard-library security fixes");
   assert.equal(RELEASE_GO_VERSION, `go${version}`);
   assert.equal(RELEASE_GO_TOOLCHAIN, `go${version}`);
   assert.equal(read("Makefile").match(/GOVERSION\)" = (go\S+)/)[1], `go${version}`);

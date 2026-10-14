@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/out"
 	"go.mau.fi/whatsmeow/types/events"
 )
 

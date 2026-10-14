@@ -1,8 +1,8 @@
-# wacli overview
+# whatscli overview
 
 Read when: you need the user-facing command map, global flags, store model, or links to command-specific docs.
 
-`wacli` is a WhatsApp CLI built on `whatsmeow`. It pairs as a linked WhatsApp Web device, stores message metadata locally, supports offline search, and exposes send/media/group/contact workflows for scripts and humans. Named accounts let multiple WhatsApp identities use isolated stores via `--account`.
+`whatscli` is a WhatsApp CLI built on `whatsmeow`. It pairs as a linked WhatsApp Web device, stores message metadata locally, supports offline search, and exposes send/media/group/contact workflows for scripts and humans. Named accounts let multiple WhatsApp identities use isolated stores via `--account`.
 
 ## Store and output
 
@@ -20,7 +20,7 @@ Read when: you need the user-facing command map, global flags, store model, or l
 - Use `--full` to avoid table truncation.
 - Local archive queries are read-only by default, need an existing current-schema store, and work alongside sync without a writer lock; see [store compatibility](store.md#local-reads-by-default).
 - Write commands acquire the store lock; use `--lock-wait DURATION` to wait.
-- Use `--read-only` or `WACLI_READONLY=1` to reject intentional WhatsApp mutations and archive writes by wacli. Requested [export files](messages.md#export), [download output](media.md#download), [explicit adapter execution](media.md#explicit-local-transcription), and [SQLite WAL/SHM bookkeeping](store.md#local-reads-by-default) remain permitted. Downloads may use the network; the chosen adapter is not sandboxed and may make network requests or file writes.
+- Use `--read-only` or `WACLI_READONLY=1` to reject intentional WhatsApp mutations and archive writes by WhatsCLI. Requested [export files](messages.md#export), [download output](media.md#download), [explicit adapter execution](media.md#explicit-local-transcription), and [SQLite WAL/SHM bookkeeping](store.md#local-reads-by-default) remain permitted. Downloads may use the network; the chosen adapter is not sandboxed and may make network requests or file writes.
 - Use `WACLI_MEDIA_ROOTS` to confine which local files send commands may upload (see [send](send.md#files)).
 - Use `sync --max-messages`, `sync --max-db-size`, `WACLI_SYNC_MAX_MESSAGES`, or `WACLI_SYNC_MAX_DB_SIZE` to bound local history growth.
 - Use `store cleanup`, `chats cleanup`, and `groups prune` to preview and remove stale local rows after sync has already stored them.
@@ -61,11 +61,11 @@ Read when: you need the user-facing command map, global flags, store model, or l
 ## Common flow
 
 ```bash
-wacli auth
-wacli sync --follow
-wacli messages search "meeting"
-wacli send text --to mom --message "hello"
-wacli send status --message "available today"
+whatscli auth
+whatscli sync --follow
+whatscli messages search "meeting"
+whatscli send text --to mom --message "hello"
+whatscli send status --message "available today"
 ```
 
 ## Recipient formats
@@ -78,4 +78,4 @@ Commands that accept `PHONE_OR_JID` accept a WhatsApp JID like `1234567890@s.wha
 
 ## History limits
 
-WhatsApp Web history is best-effort. `wacli sync` stores events WhatsApp provides, and `wacli history backfill` can ask the primary phone for older messages per chat. It cannot guarantee a full account export.
+WhatsApp Web history is best-effort. `whatscli sync` stores events WhatsApp provides, and `whatscli history backfill` can ask the primary phone for older messages per chat. It cannot guarantee a full account export.

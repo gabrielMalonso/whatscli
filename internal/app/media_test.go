@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func TestMediaQueueWaitIdleFencesActiveProducer(t *testing.T) {

@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/openclaw/wacli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
 )
 
 const heartbeatMinInterval = time.Minute
 
 // writeHeartbeat persists the current timestamp to {storeDir}/HEARTBEAT,
 // throttled to at most once per minute to avoid excessive I/O. The file
-// lets external processes (e.g. wacli doctor) inspect observed sync activity.
+// lets external processes (e.g. whatscli doctor) inspect observed sync activity.
 func (a *App) writeHeartbeat() {
 	now := nowUTC()
 	nowNanos := now.UnixNano()

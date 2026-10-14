@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openclaw/wacli/internal/store"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/proto/waWeb"
 	"go.mau.fi/whatsmeow/types"

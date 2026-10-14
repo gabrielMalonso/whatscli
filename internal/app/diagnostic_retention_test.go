@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/out"
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 // Pause an admitted recovery before SQLite prepares its conditional INSERT,

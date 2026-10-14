@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gabrielMalonso/whatscli/internal/store"
 	"github.com/mattn/go-sqlite3"
-	"github.com/openclaw/wacli/internal/store"
 	"go.mau.fi/whatsmeow/types"
 )
 

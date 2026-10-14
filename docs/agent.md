@@ -9,13 +9,13 @@ For routine operations, start with [Agent daily use](agent-daily-use.md). This p
 Discover this binary's capabilities first, then use legacy account discovery and bind the exact requested/listed name explicitly. The name below is illustrative, not a default; automated callers bind it from validated task input and the response without an interactive prompt:
 
 ```bash
-wacli --read-only capabilities --agent || exit "$?"
-wacli --read-only accounts list --json || exit "$?"
+whatscli --read-only capabilities --agent || exit "$?"
+whatscli --read-only accounts list --json || exit "$?"
 wacli_account='example-account' # Replace with the reviewed name from data.accounts.
-wacli --account "$wacli_account" --read-only --agent auth status
-wacli --account "$wacli_account" --read-only --agent messages list --limit 20
-wacli --account "$wacli_account" --read-only --agent messages search "invoice" --sort time --limit 10
-wacli --account "$wacli_account" --read-only --agent doctor
+whatscli --account "$wacli_account" --read-only --agent auth status
+whatscli --account "$wacli_account" --read-only --agent messages list --limit 20
+whatscli --account "$wacli_account" --read-only --agent messages search "invoice" --sort time --limit 10
+whatscli --account "$wacli_account" --read-only --agent doctor
 ```
 
 Accounts use legacy JSON; help/version remain text. For a manual archive use `--store DIR` instead of `--account`, never both. The [quickstart](quickstart.md#4-search-and-read) shows selection of returned chat/message IDs and full recovery. For an authorized write, read [drafts](drafts.md) before [outbound](outbound.md); use [media](media.md) only for the file task at hand. Local exhaustion never certifies remote freshness/completeness, and an uncertain effect calls for inspection rather than automatic replay. Readonly rejects intentional archive/WhatsApp mutations; requested output, network download, explicit adapter and WAL bookkeeping exceptions remain, as described in [integrations](integrations.md#optional-mode-only-wrapper-example).
@@ -23,9 +23,9 @@ Accounts use legacy JSON; help/version remain text. For a manual archive use `--
 ## Static capability discovery
 
 ```bash
-wacli capabilities --agent
-wacli capabilities --json
-wacli capabilities
+whatscli capabilities --agent
+whatscli capabilities --json
+whatscli capabilities
 ```
 
 Discovery reads the compiled command tree and the same support classification used by agent preflight. It does not read the account registry, select an archive, open SQLite/session/LOCK/IPC, connect, migrate or inspect credentials. Missing, old, corrupt or locked stores and malformed default account configuration do not affect it. Executing discovery rejects explicit `--account`, `--store` and `-a`/`--for-account`; run account discovery separately. Textual help/version do not execute discovery: `capabilities --help` and `help capabilities` may accept and ignore legacy `--account`/`--store` selectors without resolving selection or accessing config/store. Strict `-a`/`--for-account` refusal still applies to discovery help. Environment/default selection is ignored. In agent mode the envelope has `account={"store_ref":null}`, `meta.source="local"`, and unknown freshness/completeness. Compact/full return the same catalog; ordinary `--json` uses the legacy envelope and no flag prints a command table. `--agent --events` remains an error.
@@ -93,11 +93,11 @@ Usage exits 2, missing item/type/binding/network metadata or tombstone exits 3, 
 ## Explicit local transcription
 
 ```bash
-wacli media transcribe --file ./audio.ogg --adapter /absolute/executable --agent
-wacli --read-only media transcribe --file ./audio --adapter /absolute/executable --mime-type audio/ogg --expect-sha256 LOWERCASE_SHA256 --agent --detail full
+whatscli media transcribe --file ./audio.ogg --adapter /absolute/executable --agent
+whatscli --read-only media transcribe --file ./audio --adapter /absolute/executable --mime-type audio/ogg --expect-sha256 LOWERCASE_SHA256 --agent --detail full
 ```
 
-Only this explicit executable-processing command gains `agentMediaTranscription`; `meta.source="local"` applies to success, parse and all other errors. It describes local input processing, **not an executable sandbox or guarantee of no network/external writes**. There is no provider default, fallback, discovery, installation, automatic download transcription, transcript persistence, journal, IPC, recovery or replay. The command needs no archive/session/LOCK/WA; selected account/store supplies envelope identity, with account registry resolution only. Readonly flag/env prevents no authorized adapter effects and means only that wacli does not write the archive.
+Only this explicit executable-processing command gains `agentMediaTranscription`; `meta.source="local"` applies to success, parse and all other errors. It describes local input processing, **not an executable sandbox or guarantee of no network/external writes**. There is no provider default, fallback, discovery, installation, automatic download transcription, transcript persistence, journal, IPC, recovery or replay. The command needs no archive/session/LOCK/WA; selected account/store supplies envelope identity, with account registry resolution only. Readonly flag/env prevents no authorized adapter effects and means only that whatscli does not write the archive.
 
 `data={text,language,status,input:{path,bytes,sha256},text_truncated}` uses a nullable language and `completed|empty` status. Empty/whitespace adapter text is legitimate `empty`, not proof of recognized speech or silence. `completed` describes protocol completion, not transcription accuracy. Input path is the caller's explicitly requested path; bytes/hash describe the exact bounded snapshot sent on stdin, without promising source-file immutability. No binary/base64, executable path, raw streams or private causes are exposed.
 
@@ -108,7 +108,7 @@ Compact text is capped at 320 Unicode code points and full preserves bounded tex
 ## Exact media recovery
 
 ```bash
-wacli --agent media retry --chat 123@s.whatsapp.net --id ABC123 --output ./downloads/photo.jpg --wait 30s --timeout 2m
+whatscli --agent media retry --chat 123@s.whatsapp.net --id ABC123 --output ./downloads/photo.jpg --wait 30s --timeout 2m
 ```
 
 Only exact `media retry` gains this standalone writable capability. `meta.source="live"` applies to success, cache/destination reuse, usage/readonly failures and operational errors; it identifies capability, not proof of a phone request. Chat JID, message ID and output are mandatory, and explicitly supplied bulk `--before/--limit/--batch` are rejected. Global timeout is 1s–5m (default 5m), wait per attempt 1s–120s (default 30s). Readonly flag/env and malformed options fail before opening a store, LOCK, session, file or socket. Missing/old/incompatible archives and absent/tombstoned/invalid selections are preflighted without initialization or migration.
@@ -122,10 +122,10 @@ The PR17 roots/FD/digest/no-replace publisher verifies the same bytes it publish
 ## Explicit read/unread/archive actions
 
 ```bash
-wacli --agent --account personal chats mark-read --chat +15550000001
-wacli --agent --account personal chats mark-unread --chat +15550000001
-wacli --agent --store /path/to/archive chats archive --chat 300@lid
-wacli --agent --account personal chats unarchive --chat 123456-789@g.us
+whatscli --agent --account personal chats mark-read --chat +15550000001
+whatscli --agent --account personal chats mark-unread --chat +15550000001
+whatscli --agent --store /path/to/archive chats archive --chat 300@lid
+whatscli --agent --account personal chats unarchive --chat 123456-789@g.us
 ```
 
 Only `mark-read`, `mark-unread`, `archive` and `unarchive` gain this narrow capability. Supply an explicit phone number or DM/group JID; names and `--pick` (including zero) are rejected. Agent `mark-read` uses app-state only: any `--receipts` flag, including `--receipts=false`, is rejected before effects. Its global timeout must be positive and at most five minutes (default five minutes); other actions retain their existing timeout policy. Receipts, pin and mute remain unsupported with `--agent`. Read-only flag/env and malformed options fail before opening, connecting or submitting IPC. `meta.source="live"` also applies to parsing, policy and other errors; freshness/completeness remain unknown.
@@ -157,8 +157,8 @@ Recovery failures may include optional typed `error.history = {attempt_id, phase
 Compact evidence contains state, ID, operation times, immutable scope, useful counters/growth/stop reason and callback observation times. Full adds options/anchors/checkpoint counts and the explicitly scoped legacy global counter. `unfinalized` is neither a running nor a crashed assertion. Local raw counts/dates are separate observations, including removals/edits/revocations; absent chat rows do not prove no orphan messages. `primary_no_more_messages` is a response observed during that window, not a completeness certificate for global/future history. There is no network correlation ID: late replies within an open window can be observed, while callbacks after closure are ignored. Identity relation compares account and verified pair facts only; account changes invalidate matching, absent facts remain unknown, and `matching_snapshot` promises no continuity after restoration or mapping changes. No age-based freshness or file/catalog generation is inferred.
 
 ```bash
-wacli --account personal --agent history coverage --chat 123@s.whatsapp.net --evidence
-wacli --account personal --agent history backfill --chat 123@s.whatsapp.net --requests 1
+whatscli --account personal --agent history coverage --chat 123@s.whatsapp.net --evidence
+whatscli --account personal --agent history backfill --chat 123@s.whatsapp.net --requests 1
 ```
 
 Explicit-anchor success adds `data.before_id` and `data.messages_added_before`
@@ -197,9 +197,9 @@ List/search and context neighbors retain legacy exclusion of tombstones, explici
 `--agent contacts list` and `--agent contacts search QUERY` return the canonical contact view with `meta.page = {returned, has_more, next_cursor}`. Defaults are 20, limits 1–200 in either detail. Identity grouping and matching happen before limiting. An extra matching identity sets `has_more=true`; empty/exact-limit local ends return false/null. Arrays retain their existing compact/full public fields; `show` retains its tag union and `resolve` its explicit unknown results. Legacy search keeps its matching, default 50, explicit limits, tables and JSON fields.
 
 ```bash
-wacli --store /path/to/archive --agent contacts list
-wacli --store /path/to/archive --agent contacts search Alice --limit 2
-wacli --store /path/to/archive --agent contacts search Alice --cursor TOKEN --limit 10 --detail full
+whatscli --store /path/to/archive --agent contacts list
+whatscli --store /path/to/archive --agent contacts search Alice --limit 2
+whatscli --store /path/to/archive --agent contacts search Alice --cursor TOKEN --limit 10 --detail full
 ```
 
 Results use `(Name fallback JID, JID)` in complete, case-sensitive Go string order (UTF-8 byte order), independent of DTO truncation. Identity sources fold in their original display-name/JID-fallback order, with complete stored JID as the deterministic tie-breaker for previously undefined equal source keys. Verified PN rows retain display priority, aliases and system names retain their current precedence, and metadata from either half remains searchable even without a counterpart contact row. Unknown LIDs never become phone numbers; generic textual identities stay generic. Search preserves the original SQLite LOWER/escaped-LIKE matching of stored fields plus the existing Go Unicode case-insensitive matching on canonical IDs/phones and aliases.
@@ -217,8 +217,8 @@ Go retains at most `limit+1` candidate contacts and one fixed-field group accumu
 Every successful `--agent chats list` includes `meta.page` with `returned`, `has_more` and `next_cursor`, using the same limit+1 semantics as message pages. Defaults are 20 rows, limits 1–200; empty and exact-limit results return `has_more=false`, `next_cursor=null`. Change limit or detail between pages freely:
 
 ```bash
-wacli --store /path/to/archive --agent chats list --unread --query family --limit 20
-wacli --store /path/to/archive --agent chats list --unread --query family --cursor "$cursor" --limit 50 --detail full
+whatscli --store /path/to/archive --agent chats list --unread --query family --limit 20
+whatscli --store /path/to/archive --agent chats list --unread --query family --cursor "$cursor" --limit 50 --detail full
 ```
 
 Agent chat pages read **raw stored rows**: PN and LID identities remain separate, even with a verified mapping. JIDs and unread counts are neither canonicalized nor consolidated in memory. Legacy tables/JSON retain their existing display resolution, filters, ordering and default limit of 50.
@@ -248,8 +248,8 @@ Every successful `--agent messages list` includes typed `meta.page` metadata:
 Pass `next_cursor` unchanged to `--cursor TOKEN`, retaining the store selection, filters and order:
 
 ```bash
-wacli --store /path/to/archive --agent messages list --chat 123@s.whatsapp.net --limit 20
-wacli --store /path/to/archive --agent messages list --chat 123@s.whatsapp.net --cursor "$cursor" --limit 50 --detail full
+whatscli --store /path/to/archive --agent messages list --chat 123@s.whatsapp.net --limit 20
+whatscli --store /path/to/archive --agent messages list --chat 123@s.whatsapp.net --cursor "$cursor" --limit 50 --detail full
 ```
 
 For message pagination, `--cursor` requires `--agent messages list` or `--agent messages search QUERY --sort time`. Other supported domains have their own scopes and bounds: [contacts](#contact-pagination), [chats](#local-chat-pagination), [draft list/cleanup preview](drafts.md) and [outbound list/show](outbound.md). Unsupported cursor contexts fail before store/network effects. Flags can precede or follow the command. Message tokens are opaque, versioned, at most **512 bytes**, strictly decoded, and contain no credential or authorization. No server, secret, persistent token state or store UUID is needed. Tokens are not tamper-proof and must not be interpreted as access controls. Malformed, oversized, unsupported-version and mismatched tokens return `invalid_cursor` with exit 2; errors never reproduce the token or SQL.
@@ -265,9 +265,9 @@ The current upsert keeps an existing rowid, and an ordinary content edit preserv
 ## Temporal search pagination
 
 ```bash
-wacli --store /path/to/archive --agent messages search "invoice" --sort time --limit 20
-wacli --store /path/to/archive --agent messages search "invoice" --sort time --cursor "$cursor" --detail full
-wacli --store /path/to/archive --agent messages search "invoice" --sort time --asc
+whatscli --store /path/to/archive --agent messages search "invoice" --sort time --limit 20
+whatscli --store /path/to/archive --agent messages search "invoice" --sort time --cursor "$cursor" --detail full
+whatscli --store /path/to/archive --agent messages search "invoice" --sort time --asc
 ```
 
 Search defaults to `--sort relevance`: FTS5 keeps its existing `bm25` ranking with descending rowid ties; fallback LIKE keeps its existing newest-first order. Neither default search has page metadata or accepts a cursor. `data.search_mode` states `fts5` or `like`; `data.order` states the effective order, respectively `relevance` or `time_desc`. Relevance is never silently reordered to permit continuation: a cursor or `--asc` (including `--asc=false`) requires `--sort time`, otherwise exit 2 `invalid_arguments` points to that flag. Search `--sort` and `--asc` are agent-only; specifying either without `--agent` fails before opening an archive. Legacy search output, matching and ordering remain unchanged.
@@ -346,7 +346,7 @@ owners and Windows unsupported IPC remain explicit unknown observations. Offline
 `auth status` / `doctor` retain `connected=unknown`; no auth-history fallback occurs.
 
 IPC v3 adds `owner_run_id`, `send_initialized`, `operations`, retained app-state
-debt, historical `observations` and bounded WACLI timing `stages`. Typed draft
+debt, historical `observations` and bounded WhatsCLI timing `stages`. Typed draft
 writes and `outbound send` can be attempted after identity/lifetime/history
 prerequisites, before metadata bootstrap returns. `attemptable` is local admission,
 not authorization/authentication/acceptance. Chat-state still uses full bootstrap

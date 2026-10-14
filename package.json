@@ -1,23 +1,23 @@
 {
-  "name": "wacli",
+  "name": "whatscli",
   "private": true,
   "packageManager": "pnpm@12.8.1+sha512.f64ba907507f5ceafe06c8d38e6052d0179444580ec1279ddd5bfc11cb48aa8a2644b66598e07e761da84872a9fc57d5f902b87fa49d024198d558612aabbe45",
   "scripts": {
-    "wacli": "bash -lc 'pnpm --silent build >/dev/null && exec ./dist/wacli \"$@\"' _",
-    "build": "mkdir -p dist && CGO_ENABLED=1 CGO_CFLAGS=\"${CGO_CFLAGS:+$CGO_CFLAGS }-Wno-error=missing-braces\" go build -tags sqlite_fts5 -o dist/wacli ./cmd/wacli",
-    "start": "pnpm --silent build && ./dist/wacli",
+    "wacli": "pnpm --silent whatscli",
+    "build": "mkdir -p dist && CGO_ENABLED=1 CGO_CFLAGS=\"${CGO_CFLAGS:+$CGO_CFLAGS }-Wno-error=missing-braces\" go build -tags sqlite_fts5 -o dist/whatscli ./cmd/whatscli && bash scripts/update-wacli-alias.sh",
+    "start": "pnpm --silent build && ./dist/whatscli",
     "test": "pnpm --silent test:go && pnpm --silent test:fts && pnpm --silent test:windows-lock && pnpm --silent test:cgo-required && pnpm --silent test:docs",
     "test:go": "go test ./...",
     "test:fts": "go test -tags sqlite_fts5 ./...",
     "test:windows-lock": "bash scripts/check-windows-lock.sh",
-    "test:cgo-required": "bash -c 'set +e; out=$(CGO_ENABLED=0 go build ./cmd/wacli 2>&1); status=$?; set -e; echo \"$out\" | grep -q wacli_requires_cgo_enabled_1_for_go_sqlite3; test $status -ne 0'",
+    "test:cgo-required": "bash -c 'set +e; out=$(CGO_ENABLED=0 go build ./cmd/whatscli 2>&1); status=$?; set -e; echo \"$out\" | grep -q wacli_requires_cgo_enabled_1_for_go_sqlite3; test $status -ne 0'",
     "test:docs": "node --test scripts/*.test.mjs",
     "test:release": "node --test scripts/release-workflow.test.mjs",
     "test:e2e": "bash scripts/e2e-store-sqlc.sh",
     "lint": "go vet ./...",
     "lint:deadcode": "bash scripts/check-deadcode.sh",
     "govulncheck:source": "node scripts/govulncheck-stdlib.mjs source",
-    "govulncheck:binary": "node scripts/govulncheck-stdlib.mjs binary dist/wacli",
+    "govulncheck:binary": "node scripts/govulncheck-stdlib.mjs binary dist/whatscli",
     "format": "gofmt -w .",
     "format:check": "bash -lc 'out=$(gofmt -l .); if [ -n \"$out\" ]; then echo \"$out\"; exit 1; fi'",
     "generate:sqlc": "go tool github.com/sqlc-dev/sqlc/cmd/sqlc generate",
@@ -27,7 +27,8 @@
     "crabbox:hydrate": "crabbox actions hydrate",
     "crabbox:run": "crabbox run",
     "crabbox:stop": "crabbox stop",
-    "crabbox:warmup": "crabbox warmup"
+    "crabbox:warmup": "crabbox warmup",
+    "whatscli": "bash -lc 'if [ \"${1:-}\" = \"--\" ]; then shift; fi; pnpm --silent build >/dev/null && exec ./dist/whatscli \"$@\"' _"
   },
   "engines": {
     "node": ">=24"

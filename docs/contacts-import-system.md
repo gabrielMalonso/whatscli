@@ -1,23 +1,23 @@
 # contacts import-system
 
-Read when: importing macOS Contacts names into wacli, previewing matched phone numbers, clearing imported names, or feeding contacts from JSON/NDJSON.
+Read when: importing macOS Contacts names into whatscli, previewing matched phone numbers, clearing imported names, or feeding contacts from JSON/NDJSON.
 
-`wacli contacts import-system` matches phone numbers from your system contacts against contacts already stored in `wacli.db`, then stores the system display name as local wacli metadata.
+`whatscli contacts import-system` matches phone numbers from your system contacts against contacts already stored in `wacli.db`, then stores the system display name as local whatscli metadata.
 
 It does not modify WhatsApp, your phone contacts, or macOS Contacts.
 
 ## Before Importing
 
-Run a contact refresh first so wacli has the latest WhatsApp-side contact rows:
+Run a contact refresh first so whatscli has the latest WhatsApp-side contact rows:
 
 ```bash
-wacli contacts refresh
+whatscli contacts refresh
 ```
 
 Then preview the import:
 
 ```bash
-wacli contacts import-system --dry-run
+whatscli contacts import-system --dry-run
 ```
 
 The dry run prints how many local contacts would receive a system name, plus skipped counts for contacts with no phone number, no system match, or an already-current system name.
@@ -25,7 +25,7 @@ The dry run prints how many local contacts would receive a system name, plus ski
 ## Apply
 
 ```bash
-wacli contacts import-system
+whatscli contacts import-system
 ```
 
 On macOS, this reads Contacts.app through the Contacts framework. macOS may prompt for Contacts permission the first time. If access is denied, grant Contacts access in System Settings and run the command again.
@@ -43,7 +43,7 @@ Manual aliases still win. Use aliases for intentional local nicknames; use syste
 Use global `--json` for machine-readable output:
 
 ```bash
-wacli --json contacts import-system --dry-run
+whatscli --json contacts import-system --dry-run
 ```
 
 The JSON response is wrapped in the standard envelope. Import details live under `.data`:
@@ -77,8 +77,8 @@ Use `--input FILE` to import from a JSON array or newline-delimited JSON instead
 Exports are limited to 10 MiB, whether read from a file or the macOS Contacts helper. An oversized helper is stopped before its full output is buffered; no contact names are imported from an oversized export.
 
 ```bash
-wacli contacts import-system --input contacts.json --dry-run
-wacli contacts import-system --input contacts.ndjson
+whatscli contacts import-system --input contacts.json --dry-run
+whatscli contacts import-system --input contacts.ndjson
 ```
 
 Each contact object can contain `full_name`, `first_name`, `last_name`, and `phones`:
@@ -106,8 +106,8 @@ Phone matching strips non-digits. Numbers with a leading international `00` pref
 Preview and clear imported system names:
 
 ```bash
-wacli contacts import-system --clear --dry-run
-wacli contacts import-system --clear
+whatscli contacts import-system --clear --dry-run
+whatscli contacts import-system --clear
 ```
 
 Clearing removes only `system_name` values. It does not remove contacts, aliases, tags, messages, WhatsApp data, or macOS Contacts entries.
@@ -117,8 +117,8 @@ Clearing removes only `system_name` values. It does not remove contacts, aliases
 Show a contact and search by its imported system name:
 
 ```bash
-wacli contacts show --jid 1234567890@s.whatsapp.net
-wacli contacts search "Alice Appleseed"
+whatscli contacts show --jid 1234567890@s.whatsapp.net
+whatscli contacts search "Alice Appleseed"
 ```
 
 `contacts show` includes `System Name:` when one is present. Search matches imported system names in addition to aliases, WhatsApp names, phone numbers, and JIDs.

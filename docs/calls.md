@@ -2,12 +2,12 @@
 
 Read when: listing WhatsApp call events captured by sync.
 
-`wacli calls` reads call metadata from the local store. It does not place, accept, or reject calls.
+`whatscli calls` reads call metadata from the local store. It does not place, accept, or reject calls.
 
 ## Commands
 
 ```bash
-wacli calls list [--chat JID] [--asc] [--limit N] [--after DATE] [--before DATE]
+whatscli calls list [--chat JID] [--asc] [--limit N] [--after DATE] [--before DATE]
 ```
 
 ## Data Model
@@ -20,7 +20,7 @@ wacli calls list [--chat JID] [--asc] [--limit N] [--after DATE] [--before DATE]
 ## Examples
 
 ```bash
-wacli calls list --limit 20
-wacli calls list --chat 1234567890@s.whatsapp.net --json
-wacli calls list --after 2026-05-01 --asc
+whatscli calls list --limit 20
+whatscli calls list --chat 1234567890@s.whatsapp.net --json
+whatscli calls list --after 2026-05-01 --asc
 ```

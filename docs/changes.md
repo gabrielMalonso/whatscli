@@ -3,9 +3,9 @@
 Read when: consuming local WhatsApp archive mutations across agent/process restarts.
 
 ```bash
-wacli --account example-account --read-only --agent changes list --limit 20
-wacli --account example-account --read-only --agent changes list --cursor "$saved_cursor" --limit 200
-wacli --store /path/to/archive --json changes list --limit 50
+whatscli --account example-account --read-only --agent changes list --limit 20
+whatscli --account example-account --read-only --agent changes list --cursor "$saved_cursor" --limit 200
+whatscli --store /path/to/archive --json changes list --limit 50
 ```
 
 Select the intended account explicitly. `changes list` and `changes watch` always opens only the existing `wacli.db` read-only, including without `--read-only`. It never acquires writer `LOCK`, initializes/migrates a store, reads `session.db`, opens a WhatsApp client, refreshes identities, or delegates to an owner. Each page reads one SQLite snapshot and sees committed WAL changes alongside a writer. Normal SQLite WAL/SHM bookkeeping remains possible. An old/unversioned/newer or incompatible store fails with sanitized `store_unavailable` (agent exit 4); an explicit authorized writer upgrade is required for schema **33**. Do not run auth/sync automatically to repair a query error: those commands may connect.
@@ -24,9 +24,9 @@ Legacy `--json` returns the existing `{success,data,error}` envelope with `data=
 
 ```bash
 # Consumer; an already-running sync owner can keep committing in another process.
-wacli -a example-account --read-only --agent --timeout 0 changes watch --limit 20
-wacli -a example-account --read-only --agent --timeout 0 changes watch --cursor "$saved_cursor"
-wacli --store /path/to/archive changes watch --interval 1s --timeout 30m
+whatscli -a example-account --read-only --agent --timeout 0 changes watch --limit 20
+whatscli -a example-account --read-only --agent --timeout 0 changes watch --cursor "$saved_cursor"
+whatscli --store /path/to/archive changes watch --interval 1s --timeout 30m
 ```
 
 `watch` observes the existing **local file**, with or without an owner. It does not start sync, connect to WhatsApp, inspect readiness, acquire writer LOCK, use owner IPC or create/migrate an archive. A reader remains available even when live authenticated readiness is unknown/false. Only commits actually added to the feed can appear; an idle stream says nothing about remote activity or completeness.
@@ -37,7 +37,7 @@ Without a cursor, watch starts at the retained beginning, exactly like list. Lis
 
 `--limit` is 1–200 per frame (default 50, agent 20). `--interval` is 100ms–1m (default 1s) after each drained snapshot; normal detection latency is up to that interval plus read/output time. There is no total page limit or whole-feed materialization. The existing global `--timeout` bounds the invocation: default **5m**, explicit positive **100ms–24h**, or **0** to wait until cancellation. Waiting, opening and SQLite reads honor cancellation. Watch uses native SQLite busy waits of at most 50ms, with cancellable pauses between contention retries (at most 5s per opening/page read, also bounded by the command context). Each failed attempt finishes and releases its snapshot before waiting; cursor/schema/other read failures are not retried. Exhausted contention without command cancellation remains `store_unavailable`, exit 4. Legacy list/read connection defaults are unchanged. On Unix, pollable stdout pipes/sockets also wake on cancellation/deadline when a consumer stalls; regular-file IO and handles without deadline support (including inherited Windows stdout) retain OS blocking semantics. SIGINT/SIGTERM reports `cancelled`, timeout reports `timeout`, and stdout write/short-write/broken-pipe failure reports `output_failed`; each exits **1**, on stderr (v1 with `--agent`; otherwise legacy JSON after watch starts, or lifecycle NDJSON with `--events`). Cursor failures retain list's `invalid_cursor`/`cursor_expired` exit 2, and schema/read failures retain `store_unavailable` exit 4. There is no final success/checkpoint on exit and no silent cursor reset. Earlier complete stdout frames remain valid after a later error; discard any incomplete final line. Help and errors before command execution retain the usual CLI output rules.
 
-A delivered frame is a **read checkpoint, not a processing acknowledgement**. Process its changes, then persist its cursor in your own consumer state. If a page is only partially processed, resume from the previously processed frame and deduplicate/reconcile stable event IDs; if a complete processed frame's cursor was not saved, its retained entries replay. This is at-least-once consumption under the retained-feed/continuity assumptions below, not exactly-once external processing. WACLI stores no consumer acknowledgement/checkpoint and cannot know whether a downstream process finished. A failed or partial write stops the reader; never save a cursor from partial JSON or assume the error acknowledged processing. Read current referenced content and honor tombstones/idempotency as described below.
+A delivered frame is a **read checkpoint, not a processing acknowledgement**. Process its changes, then persist its cursor in your own consumer state. If a page is only partially processed, resume from the previously processed frame and deduplicate/reconcile stable event IDs; if a complete processed frame's cursor was not saved, its retained entries replay. This is at-least-once consumption under the retained-feed/continuity assumptions below, not exactly-once external processing. WhatsCLI stores no consumer acknowledgement/checkpoint and cannot know whether a downstream process finished. A failed or partial write stops the reader; never save a cursor from partial JSON or assume the error acknowledged processing. Read current referenced content and honor tombstones/idempotency as described below.
 
 ## Retained references and receipt observations
 

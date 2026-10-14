@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openclaw/wacli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
@@ -118,7 +118,7 @@ func (s *sessionObservation) observe(evt any) error {
 		}
 		return s.rejectLogin(fmt.Errorf("WhatsApp login failed: %s", v.Reason), revokedReason)
 	case *events.ClientOutdated:
-		return s.rejectLogin(fmt.Errorf("WhatsApp client is outdated; update wacli and try again"), "")
+		return s.rejectLogin(fmt.Errorf("WhatsApp client is outdated; update whatscli and try again"), "")
 	case *events.TemporaryBan:
 		return s.rejectLogin(fmt.Errorf("WhatsApp account is temporarily banned: %s", v), "")
 	case *events.StreamReplaced:

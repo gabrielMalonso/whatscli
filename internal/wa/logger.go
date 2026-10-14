@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/openclaw/wacli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/out"
 	signalLog "go.mau.fi/libsignal/logger"
 	waLog "go.mau.fi/whatsmeow/util/log"
 )

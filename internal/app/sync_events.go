@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/openclaw/wacli/internal/store"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/proto/waHistorySync"
@@ -25,7 +25,7 @@ import (
 // session. sync deliberately keeps the local device record (see the LoggedOut
 // case), and `auth --phone` short-circuits while that record exists — so
 // re-pairing needs the explicit local logout first.
-const loggedOutRecoveryHint = "To re-authenticate, run `wacli auth logout` to clear the local session, then `wacli auth --phone` to pair again."
+const loggedOutRecoveryHint = "To re-authenticate, run `whatscli auth logout` to clear the local session, then `whatscli auth --phone` to pair again."
 
 func newMediaEnqueuer(ctx context.Context, queue *mediaQueue) func(chatJID, msgID string) {
 	return func(chatJID, msgID string) {

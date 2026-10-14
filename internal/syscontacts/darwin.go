@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openclaw/wacli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
 )
 
 //go:embed contacts_export.swift

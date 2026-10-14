@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Build: atomically replace the local `wacli` compatibility binary so rebuilds and pnpm commands work while a legacy sync owner is running. Update the documentation social card to WhatsCLI.
+
+- Security: build with Go 1.27.2 to address reachable standard-library vulnerabilities reported by the CI govulncheck gate. Align development, CI, release verification and the pinned Docker builder while retaining the Go 1.27.0 source minimum and the existing vulnerability checks.
+- Security checks: attribute each govulncheck finding to its vulnerable trace frame rather than its callers. Preserve blocking for reachable standard-library and unclassified findings, and continue reporting third-party advisories without suppressions.
+
+- Repository: move this fork to `gabrielMalonso/whatscli` and update its Go module, internal imports, documentation links and release metadata. Preserve the upstream fork relationship and existing runtime/store compatibility.
+
+- Rebrand this fork as WhatsCLI — WhatsApp for Agents, with the `whatscli` command, fork-owned source links and retained WACLI credits. Local builds retain a `wacli` alias; existing WACLI environment variables, account/store paths, databases and integration protocols remain unchanged.
+
 - Sync: expose operation admission, bounded WACLI stage durations/budgets, historical owner-run observations and retained app-state debt through fail-closed status IPC v3. Admit only typed draft/outbound requests after identity migration and history/lifetime setup while metadata bootstrap continues; preserve full `owner_ready`, strict `ready=false`/`authenticated=unknown`, local-read independence, collection guards, idempotency and uncertain outcomes. No schema, flags, SDK, dependencies, retries or timeout changes; fixture validation only.
 - Ingestion: report sanitized live persistence failures and per-response history received/valid/content/processed/skipped/failed counts, with fixed discard reasons and bounded run observations in the existing Sync diagnostic slot. Keep replay/update/purge processing distinct from unmeasured additions, propagate ON_DEMAND errors and preserve lifecycle, authorship, idempotency and backfill contracts. No schema/flags/dependencies or automatic gap recovery; fixture and race validation only.
 

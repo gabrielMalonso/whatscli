@@ -2,14 +2,14 @@
 
 Read when: diagnosing store layout, auth state, FTS/search support, locks, or optional live connectivity.
 
-`wacli doctor` reports local health information and can optionally connect to WhatsApp.
+`whatscli doctor` reports local health information and can optionally connect to WhatsApp.
 
 For a point-in-time observation of an existing follow owner, use [`sync status`](sync.md#live-owner-readiness). Offline doctor/auth observations remain historical and connectivity stays `unknown`; the live query uses only IPC and never connects.
 
 ## Command
 
 ```bash
-wacli doctor [--connect]
+whatscli doctor [--connect]
 ```
 
 ## Notes
@@ -25,9 +25,9 @@ wacli doctor [--connect]
 ## Examples
 
 ```bash
-wacli doctor
-wacli doctor --json
-wacli doctor --connect
+whatscli doctor
+whatscli doctor --json
+whatscli doctor --connect
 ```
 
 ## Retained connection and sync observations

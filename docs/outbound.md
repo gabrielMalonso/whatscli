@@ -7,11 +7,11 @@ Schema **31** retains operations bound to immutable drafts. `outbound send` expl
 ## Offline queries
 
 ```bash
-wacli --account personal outbound list --agent
-wacli --account personal outbound list --account-jid 15550000001@s.whatsapp.net --agent --limit 20
-wacli --account personal outbound show OPERATION_ID --agent
-wacli --account personal outbound show --key 'literal-key' --account-jid 15550000001@s.whatsapp.net --agent --detail full
-wacli --account personal outbound show OPERATION_ID --agent --limit 20 --cursor TOKEN
+whatscli --account personal outbound list --agent
+whatscli --account personal outbound list --account-jid 15550000001@s.whatsapp.net --agent --limit 20
+whatscli --account personal outbound show OPERATION_ID --agent
+whatscli --account personal outbound show --key 'literal-key' --account-jid 15550000001@s.whatsapp.net --agent --detail full
+whatscli --account personal outbound show OPERATION_ID --agent --limit 20 --cursor TOKEN
 ```
 
 The existing account/store selection is frozen once. `account.store_ref` identifies that archive. `--account-jid` filters **frozen own PN**, never selects a different store, reads current identity or grants authorization. Show accepts an operation ID or key+own PN, never both. IDs are lowercase 32-hex. Keys are literal case-sensitive ASCII `!`–`~`, 1–128 bytes, without spaces or normalization.
@@ -85,7 +85,7 @@ FULL requests SQLite/OS flushes; it does not promise survival of hardware/filesy
 ## Explicit dispatch
 
 ```bash
-wacli --account personal outbound send DRAFT_ID --revision REVISION_ID --expect-hash SHA256 --key 'literal-key' --agent
+whatscli --account personal outbound send DRAFT_ID --revision REVISION_ID --expect-hash SHA256 --key 'literal-key' --agent
 ```
 
 D/R/H and the key are mandatory. Readonly policy and malformed selection fail before archive initialization/migration, LOCK, snapshot, socket or WA access. Store selection is frozen once. The revision supplies the frozen own PN; the request fixes it across IPC and the owner revalidates it. The same retained version/own PN/D/R/H/key returns the original operation locally before current identity, active/head, document or network checks, even when pending, failed, uncertain or discarded. A different binding conflicts. No duplicate pacing or rapid-send bookkeeping occurs.

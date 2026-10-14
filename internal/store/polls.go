@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openclaw/wacli/internal/store/storedb"
+	"github.com/gabrielMalonso/whatscli/internal/store/storedb"
 )
 
 // Poll represents a stored PollCreationMessage.

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/out"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
@@ -95,8 +95,8 @@ func TestSyncEventHandlerEmitsLoggedOutAndSignals(t *testing.T) {
 				t.Fatal("logged_out reason string is empty")
 			}
 			recovery, _ := data["recovery"].(string)
-			if !strings.Contains(recovery, "wacli auth logout") || !strings.Contains(recovery, "wacli auth --phone") {
-				t.Fatalf("logged_out recovery hint must name the `wacli auth logout` + `wacli auth --phone` sequence, got %q", recovery)
+			if !strings.Contains(recovery, "whatscli auth logout") || !strings.Contains(recovery, "whatscli auth --phone") {
+				t.Fatalf("logged_out recovery hint must name the `whatscli auth logout` + `whatscli auth --phone` sequence, got %q", recovery)
 			}
 		})
 	}
@@ -105,7 +105,7 @@ func TestSyncEventHandlerEmitsLoggedOutAndSignals(t *testing.T) {
 // The human (non --events) output must tell the operator how to recover:
 // sync keeps the local device record on a forced logout, so a bare
 // `auth --phone` short-circuits — the printed hint must name the
-// `wacli auth logout` → `wacli auth --phone` sequence.
+// `whatscli auth logout` → `whatscli auth --phone` sequence.
 func TestSyncLoggedOutHumanOutputIncludesRecoveryHint(t *testing.T) {
 	a := newTestApp(t)
 	f := newFakeWA()
@@ -141,8 +141,8 @@ func TestSyncLoggedOutHumanOutputIncludesRecoveryHint(t *testing.T) {
 	if !strings.Contains(got, "Logged out of WhatsApp") {
 		t.Fatalf("human output missing logout notice:\n%s", got)
 	}
-	if !strings.Contains(got, "wacli auth logout") || !strings.Contains(got, "wacli auth --phone") {
-		t.Fatalf("human output must name the `wacli auth logout` + `wacli auth --phone` recovery sequence:\n%s", got)
+	if !strings.Contains(got, "whatscli auth logout") || !strings.Contains(got, "whatscli auth --phone") {
+		t.Fatalf("human output must name the `whatscli auth logout` + `whatscli auth --phone` recovery sequence:\n%s", got)
 	}
 }
 

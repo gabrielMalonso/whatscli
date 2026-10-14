@@ -22,10 +22,10 @@ cleanup_fixture() {
 trap cleanup_fixture EXIT
 
 mkdir -p dist
-CGO_ENABLED=1 CGO_CFLAGS="${CGO_CFLAGS:+$CGO_CFLAGS }-Wno-error=missing-braces" go build -tags sqlite_fts5 -o dist/wacli ./cmd/wacli
+CGO_ENABLED=1 CGO_CFLAGS="${CGO_CFLAGS:+$CGO_CFLAGS }-Wno-error=missing-braces" go build -tags sqlite_fts5 -o dist/whatscli ./cmd/whatscli
 
 # Reads must not bootstrap an absent store. Initialize only a synthetic fixture.
-if ./dist/wacli --store "$store_dir" --json store stats >"$fixture_dir/missing.json" 2>"$fixture_dir/missing.err"; then
+if ./dist/whatscli --store "$store_dir" --json store stats >"$fixture_dir/missing.json" 2>"$fixture_dir/missing.err"; then
   echo "store stats unexpectedly initialized a missing store" >&2
   exit 1
 fi
@@ -38,7 +38,7 @@ import (
     "path/filepath"
     "time"
 
-    "github.com/openclaw/wacli/internal/store"
+    "github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func main() {
@@ -58,7 +58,7 @@ func main() {
 GO
 CGO_ENABLED=1 CGO_CFLAGS="${CGO_CFLAGS:+$CGO_CFLAGS }-Wno-error=missing-braces" go run -tags sqlite_fts5 "$fixture_dir/fixture.go" "$store_dir"
 cp "$store_dir/wacli.db" "$fixture_dir/before.db"
-stats_json="$(./dist/wacli --store "$store_dir" --json store stats)"
+stats_json="$(./dist/whatscli --store "$store_dir" --json store stats)"
 cmp "$fixture_dir/before.db" "$store_dir/wacli.db"
 test ! -e "$store_dir/session.db"
 test ! -e "$store_dir/LOCK"
@@ -75,7 +75,7 @@ preview() {
   local expected="$1"
   shift
   local result
-  result="$(./dist/wacli --store "$store_dir" --json --read-only "$@" --dry-run)"
+  result="$(./dist/whatscli --store "$store_dir" --json --read-only "$@" --dry-run)"
   case "$result" in
     *'"success":true'*"$expected"*) ;;
     *) echo "unexpected maintenance preview: $result" >&2; exit 1 ;;
@@ -83,7 +83,7 @@ preview() {
   cmp "$fixture_dir/before-maintenance.db" "$store_dir/wacli.db"
   test ! -e "$store_dir/session.db"
   test ! -e "$store_dir/LOCK"
-  if ./dist/wacli --store "$store_dir" --read-only "$@" --confirm >"$fixture_dir/blocked.out" 2>"$fixture_dir/blocked.err"; then
+  if ./dist/whatscli --store "$store_dir" --read-only "$@" --confirm >"$fixture_dir/blocked.out" 2>"$fixture_dir/blocked.err"; then
     echo "read-only maintenance execution unexpectedly succeeded" >&2
     exit 1
   fi
@@ -99,10 +99,10 @@ preview '"would_delete_chats":1' store cleanup
 preview '"would_purge":1' messages purge --chat synthetic@g.us --id deleted
 
 # Real execution remains writable, offline, and confined to this fixture.
-./dist/wacli --store "$store_dir" --json messages purge --chat synthetic@g.us --id deleted --confirm >"$fixture_dir/purged.json"
+./dist/whatscli --store "$store_dir" --json messages purge --chat synthetic@g.us --id deleted --confirm >"$fixture_dir/purged.json"
 grep -q '"purged":1' "$fixture_dir/purged.json"
-./dist/wacli --store "$store_dir" --json groups prune --confirm >"$fixture_dir/pruned.json"
+./dist/whatscli --store "$store_dir" --json groups prune --confirm >"$fixture_dir/pruned.json"
 grep -q '"deleted":1' "$fixture_dir/pruned.json"
-./dist/wacli --store "$store_dir" --json store stats >"$fixture_dir/after.json"
+./dist/whatscli --store "$store_dir" --json store stats >"$fixture_dir/after.json"
 grep -q '"chats":0' "$fixture_dir/after.json"
 grep -q '"messages":0' "$fixture_dir/after.json"

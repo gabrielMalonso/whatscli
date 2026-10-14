@@ -2,7 +2,7 @@
 
 Read when: inspecting local SQLite size/counts or pruning old local chat/group rows.
 
-`wacli store` manages the selected account's local `wacli.db` mirror. Cleanup commands only delete local wacli cache/history rows; they do not delete WhatsApp chats, leave groups, or remove messages from WhatsApp servers.
+`whatscli store` manages the selected account's local `wacli.db` mirror. Cleanup commands only delete local whatscli cache/history rows; they do not delete WhatsApp chats, leave groups, or remove messages from WhatsApp servers.
 
 ## Local reads by default
 
@@ -42,7 +42,7 @@ logout or lost authentication; no `linked_jid` is inferred. Known auth/JID obser
 available if only the archive fails. Agent doctor instead returns its sanitized
 error with exit 4 and no auth data. Read-only archive access requires the current schema
 version: older or unversioned stores need an **explicit writable upgrade** (for
-example, `auth` or `sync`); a newer schema needs a compatible newer wacli binary.
+example, `auth` or `sync`); a newer schema needs a compatible newer whatscli binary.
 Local queries never perform that upgrade automatically. These writable commands
 may connect to WhatsApp; there is currently no dedicated offline upgrade command.
 Read-only validation also requires the complete supported migration-version set.
@@ -76,15 +76,15 @@ writer lock and a writable store.
 ## Commands
 
 ```bash
-wacli store stats
-wacli store cleanup [--days N] [--dry-run] [--confirm]
+whatscli store stats
+whatscli store cleanup [--days N] [--dry-run] [--confirm]
 ```
 
 Related cleanup commands:
 
 ```bash
-wacli chats cleanup [--days N] [--jid JID] [--dry-run] [--confirm]
-wacli groups prune [--days N] [--left-only=false|--include-active] [--dry-run] [--confirm]
+whatscli chats cleanup [--days N] [--jid JID] [--dry-run] [--confirm]
+whatscli groups prune [--days N] [--left-only=false|--include-active] [--dry-run] [--confirm]
 ```
 
 ## Notes
@@ -107,10 +107,10 @@ wacli groups prune [--days N] [--left-only=false|--include-active] [--dry-run] [
 ## Examples
 
 ```bash
-wacli store stats
-wacli store cleanup --days 365 --dry-run
-wacli chats cleanup --jid 1234567890@s.whatsapp.net --dry-run
-wacli groups prune --dry-run
-wacli groups prune --days 180 --dry-run
-wacli groups prune --include-active --days 365 --dry-run
+whatscli store stats
+whatscli store cleanup --days 365 --dry-run
+whatscli chats cleanup --jid 1234567890@s.whatsapp.net --dry-run
+whatscli groups prune --dry-run
+whatscli groups prune --days 180 --dry-run
+whatscli groups prune --include-active --days 365 --dry-run
 ```

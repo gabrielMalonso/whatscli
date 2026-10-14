@@ -18,8 +18,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/openclaw/wacli/internal/linkpreview"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/linkpreview"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow/types"
 )
 
@@ -284,7 +284,7 @@ func newSyncWebhookRequest(ctx context.Context, webhookURL, secret, version stri
 		return nil, fmt.Errorf("create webhook request %s: %s", redactedWebhookURL(webhookURL), redactWebhookError(webhookURL, err))
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "wacli/"+version)
+	req.Header.Set("User-Agent", "whatscli/"+version)
 	if strings.TrimSpace(secret) != "" {
 		req.Header.Set("X-Wacli-Signature", syncWebhookSignature(secret, payload))
 	}

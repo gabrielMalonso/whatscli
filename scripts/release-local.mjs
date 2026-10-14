@@ -63,9 +63,9 @@ function assertReleaseSource(version, commit, run) {
   if (releaseGoVersionForCommit(commit, { run }) !== RELEASE_GO_VERSION) {
     throw new Error(`release commit must select exact ${RELEASE_GO_VERSION}`);
   }
-  const rootSource = fs.readFileSync(path.join(repoRoot, "cmd/wacli/root.go"), "utf8");
+  const rootSource = fs.readFileSync(path.join(repoRoot, "cmd/whatscli/root.go"), "utf8");
   if (!rootSource.includes(`const sourceVersion = \"${version}\"`)) {
-    throw new Error(`cmd/wacli/root.go does not default to ${version}`);
+    throw new Error(`cmd/whatscli/root.go does not default to ${version}`);
   }
   const changelog = fs.readFileSync(path.join(repoRoot, "CHANGELOG.md"), "utf8");
   const datedHeadings = [...changelog.matchAll(/^## (\S+) - \d{4}-\d{2}-\d{2}$/gm)];
@@ -97,7 +97,7 @@ function buildDarwinBinary({ arch, version, output, run, buildEnv }) {
         `-X main.releaseLinkerSetting=wacli-release-linker-version=[${version}]`,
       "-o",
       output,
-      "./cmd/wacli",
+      "./cmd/whatscli",
     ],
     { cwd: repoRoot, env },
   );
@@ -132,7 +132,7 @@ function notarizeBinaries(binaries, profile, tempRoot, run) {
   for (const [name, binary] of Object.entries(binaries)) {
     fs.copyFileSync(binary, path.join(payloadDir, name), fs.constants.COPYFILE_EXCL);
   }
-  const submission = path.join(tempRoot, "wacli-notarization.zip");
+  const submission = path.join(tempRoot, "whatscli-notarization.zip");
   run("ditto", ["-c", "-k", "--sequesterRsrc", payloadDir, submission]);
   const result = run("xcrun", [
     "notarytool",
@@ -159,10 +159,10 @@ function notarizeBinaries(binaries, profile, tempRoot, run) {
 }
 
 function createDarwinArchive(candidateDir, version, target, binary, run) {
-  const name = `wacli_${version}_darwin_${target}.tar.gz`;
+  const name = `whatscli_${version}_darwin_${target}.tar.gz`;
   const stagingDir = fs.mkdtempSync(path.join(path.dirname(candidateDir), `${target}-archive-`));
   try {
-    fs.copyFileSync(binary, path.join(stagingDir, "wacli"), fs.constants.COPYFILE_EXCL);
+    fs.copyFileSync(binary, path.join(stagingDir, "whatscli"), fs.constants.COPYFILE_EXCL);
     fs.copyFileSync(path.join(repoRoot, "LICENSE"), path.join(stagingDir, "LICENSE"));
     fs.copyFileSync(path.join(repoRoot, "README.md"), path.join(stagingDir, "README.md"));
     run("tar", [
@@ -172,7 +172,7 @@ function createDarwinArchive(candidateDir, version, target, binary, run) {
       stagingDir,
       "LICENSE",
       "README.md",
-      "wacli",
+      "whatscli",
     ]);
   } finally {
     fs.rmSync(stagingDir, { recursive: true, force: true });
@@ -204,7 +204,7 @@ export function prepareDarwinRelease(options) {
   if (fs.existsSync(outputDir)) throw new Error(`refusing to replace existing output directory ${outputDir}`);
   const outputParent = path.dirname(outputDir);
   fs.mkdirSync(outputParent, { recursive: true });
-  const tempRoot = fs.mkdtempSync(path.join(outputParent, ".wacli-release-"));
+  const tempRoot = fs.mkdtempSync(path.join(outputParent, ".whatscli-release-"));
   const candidateDir = path.join(tempRoot, "candidate");
   fs.mkdirSync(candidateDir);
 
@@ -240,9 +240,9 @@ export function prepareDarwinRelease(options) {
     const binariesDir = path.join(tempRoot, "darwin-binaries");
     fs.mkdirSync(binariesDir);
     const binaries = {
-      amd64: path.join(binariesDir, "wacli-amd64"),
-      arm64: path.join(binariesDir, "wacli-arm64"),
-      universal: path.join(binariesDir, "wacli-universal"),
+      amd64: path.join(binariesDir, "whatscli-amd64"),
+      arm64: path.join(binariesDir, "whatscli-arm64"),
+      universal: path.join(binariesDir, "whatscli-universal"),
     };
     buildDarwinBinary({ arch: "amd64", version, output: binaries.amd64, run, buildEnv });
     buildDarwinBinary({ arch: "arm64", version, output: binaries.arm64, run, buildEnv });
@@ -300,7 +300,7 @@ function releaseNotesForCommit(tag, commit, run) {
 }
 
 function releaseNotesFile(tag, commit, run) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wacli-release-notes-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "whatscli-release-notes-"));
   const file = path.join(tempDir, "notes.md");
   const body = releaseNotesForCommit(tag, commit, run);
   fs.writeFileSync(file, body, { flag: "wx", mode: 0o600 });
@@ -369,7 +369,7 @@ export function createDraftRelease(options) {
       "--target",
       options.commit,
       "--title",
-      `wacli ${options.tag}`,
+      `whatscli ${options.tag}`,
       "--notes-file",
       notesFile,
       ...assets,
@@ -443,7 +443,7 @@ export function verifySignedReleaseTag({ tag, commit, run = runCommand, requireR
     ["for-each-ref", "--format=%(contents:subject)", `refs/tags/${tag}`],
     { cwd: repoRoot },
   ).stdout.trim();
-  if (subject !== `wacli ${version}`) throw new Error(`${tag} has the wrong annotated tag message`);
+  if (subject !== `whatscli ${version}`) throw new Error(`${tag} has the wrong annotated tag message`);
   run("git", ["tag", "--verify", tag], { cwd: repoRoot });
 
   const remote = remoteTagObjects(tag, run);
@@ -474,7 +474,7 @@ export function createAndPushSignedTag(options) {
   run("git", ["merge-base", "--is-ancestor", options.commit, "origin/main"], { cwd: repoRoot });
   run(
     "git",
-    ["tag", "--sign", "--annotate", "--message", `wacli ${version}`, options.tag, options.commit],
+    ["tag", "--sign", "--annotate", "--message", `whatscli ${version}`, options.tag, options.commit],
     { cwd: repoRoot },
   );
   verifySignedReleaseTag({
@@ -495,7 +495,7 @@ export function validateGitHubSignedTag({ tag, commit, tagObjectSha, tagRef, tag
   assertCommit(tagObjectSha);
   // GitHub's Git-tag endpoint includes the embedded signature in both message and verification.signature.
   const signature = String(tagObject.verification?.signature ?? "").trimEnd();
-  const expectedMessage = `wacli ${version}\n${signature}`.trimEnd();
+  const expectedMessage = `whatscli ${version}\n${signature}`.trimEnd();
   if (
     tagRef.ref !== `refs/tags/${tag}` ||
     tagRef.object?.type !== "tag" ||
@@ -850,7 +850,7 @@ function downloadAndVerifyHomebrewAssets({
   platform = process.platform,
   architecture = process.arch,
 }) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "wacli-homebrew-release-"));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "whatscli-homebrew-release-"));
   try {
     for (const name of releaseAssetNames(version)) {
       downloadAsset(assets.find((asset) => asset.name === name), directory);
@@ -861,18 +861,18 @@ function downloadAndVerifyHomebrewAssets({
       archiveNames(version),
     );
     const hostTarget = homebrewHostTarget(platform, architecture);
-    const archiveName = `wacli_${version}_${hostTarget.target}.tar.gz`;
+    const archiveName = `whatscli_${version}_${hostTarget.target}.tar.gz`;
     const archive = path.join(directory, archiveName);
-    assertArchiveContents(archive, "wacli", { run });
+    assertArchiveContents(archive, "whatscli", { run });
     const extraction = fs.mkdtempSync(path.join(directory, ".host-binary-"));
     try {
-      run("tar", ["-xzf", archive, "-C", extraction, "wacli"]);
+      run("tar", ["-xzf", archive, "-C", extraction, "whatscli"]);
       return {
         checksums,
         installedBinary: {
           archiveName,
           lipoArch: hostTarget.lipoArch,
-          sha256: sha256File(path.join(extraction, "wacli")),
+          sha256: sha256File(path.join(extraction, "whatscli")),
         },
       };
     } finally {
@@ -972,7 +972,7 @@ export function validateHomebrewFormula(formula, { tag, checksums }) {
   if (currentOs || currentArch) throw new Error("unterminated Homebrew target stanza");
   assertExactInventory(stanzas.keys(), targets, "Homebrew formula target stanza");
   for (const target of targets) {
-    const name = `wacli_${version}_${target}.tar.gz`;
+    const name = `whatscli_${version}_${target}.tar.gz`;
     const url = `https://github.com/${RELEASE_REPOSITORY}/releases/download/${tag}/${name}`;
     const stanza = stanzas.get(target);
     if (stanza.url !== url) {
@@ -1093,16 +1093,16 @@ export function dispatchHomebrewHandoff(options) {
   const releaseId = Number(options.releaseId);
   if (!Number.isInteger(releaseId) || releaseId <= 0) throw new Error("invalid release ID");
   if (options.cleanConfirm !== options.tag) {
-    throw new Error("--confirm-clean-homebrew-host must exactly match --tag on a host without wacli installed");
+    throw new Error("--confirm-clean-homebrew-host must exactly match --tag on a host without whatscli installed");
   }
   const executionEnv = sanitizedExecutionEnv();
   assertNoReleaseCredentials(executionEnv);
-  const installed = run("brew", ["list", "--versions", "wacli"], {
+  const installed = run("brew", ["list", "--versions", "whatscli"], {
     allowFailure: true,
     env: executionEnv,
   });
   if (installed.status === 0 || installed.stdout.trim()) {
-    throw new Error("Homebrew clean-install gate requires wacli to be absent");
+    throw new Error("Homebrew clean-install gate requires whatscli to be absent");
   }
 
   const expectedBody = releaseNotesForCommit(options.tag, options.commit, run);
@@ -1151,9 +1151,9 @@ export function dispatchHomebrewHandoff(options) {
   }
 
   const requestId =
-    `wacli-${options.tag}-r${releaseId}-${options.commit}-` +
+    `whatscli-${options.tag}-r${releaseId}-${options.commit}-` +
     `${options.manifestDigest}-${options.requestNonce ?? Date.now()}`;
-  const expectedTitle = `Update wacli for ${options.tag} (${requestId})`;
+  const expectedTitle = `Update whatscli for ${options.tag} (${requestId})`;
   run("gh", [
     "workflow",
     "run",
@@ -1268,9 +1268,9 @@ export function dispatchHomebrewHandoff(options) {
     checksums: downloadedAssets.checksums,
   });
   run("brew", ["install", "--formula", "openclaw/tap/wacli"], { env: executionEnv });
-  const prefix = run("brew", ["--prefix", "wacli"], { env: executionEnv }).stdout.trim();
+  const prefix = run("brew", ["--prefix", "whatscli"], { env: executionEnv }).stdout.trim();
   verifyHomebrewInstalledBinary({
-    binary: path.join(prefix, "bin", "wacli"),
+    binary: path.join(prefix, "bin", "whatscli"),
     version,
     expectedSha256: downloadedAssets.installedBinary.sha256,
     expectedArch: downloadedAssets.installedBinary.lipoArch,
@@ -1289,6 +1289,10 @@ function required(args, names) {
 }
 
 function main() {
+  // The inherited dispatcher embeds upstream signing and tap assumptions.
+  if (RELEASE_REPOSITORY !== "openclaw/wacli") {
+    throw new Error("WhatsCLI publication and signing are not configured; the inherited OpenClaw publisher is unavailable for this fork");
+  }
   const [command, ...rest] = process.argv.slice(2);
   const args = parseCliArgs(rest);
   if (command === "prepare") {

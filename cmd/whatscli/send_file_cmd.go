@@ -1,0 +1,137 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/gabrielMalonso/whatscli/internal/out"
+	"github.com/spf13/cobra"
+)
+
+func newSendFileCmd(flags *rootFlags) *cobra.Command {
+	var to string
+	var pick int
+	var filePath string
+	var filename string
+	var caption string
+	var mimeOverride string
+	var mediaAs string
+	var replyTo string
+	var replyToSender string
+	var ptt bool
+	postSendWait := postSendRetryReceiptWait
+
+	cmd := &cobra.Command{
+		Use:   "file",
+		Short: "Send a file (image/video/audio/document)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if to == "" || filePath == "" {
+				return fmt.Errorf("--to and --file are required")
+			}
+			mediaAs, err := validateSendFileMediaOptions(mediaAs, ptt)
+			if err != nil {
+				return err
+			}
+			if err := flags.requireWritable(); err != nil {
+				return err
+			}
+			if err := checkOutboundMediaPath(filePath); err != nil {
+				return err
+			}
+
+			ctx, cancel := withTimeout(context.Background(), flags)
+			defer cancel()
+
+			a, lk, err := newApp(ctx, flags, true, false)
+			if err != nil {
+				delegateFile := filePath
+				if abs, absErr := filepath.Abs(filePath); absErr == nil {
+					delegateFile = abs
+				}
+				resp, delegated, delegateErr := tryDelegateSend(ctx, flags, err, sendDelegateRequest{
+					Kind:           "file",
+					To:             to,
+					Pick:           pick,
+					File:           delegateFile,
+					Filename:       filename,
+					Caption:        caption,
+					MIME:           mimeOverride,
+					As:             mediaAs,
+					ReplyTo:        replyTo,
+					ReplyToSender:  replyToSender,
+					PTT:            ptt,
+					PostSendWaitMS: durationMillis(postSendWait),
+				})
+				if delegated {
+					if delegateErr != nil {
+						return delegateErr
+					}
+					return writeDelegatedSendOutput(flags, "file", resp)
+				}
+				return err
+			}
+			defer closeApp(a, lk)
+
+			if err := a.EnsureAuthed(ctx); err != nil {
+				return err
+			}
+
+			toJID, err := resolveRecipient(a, to, recipientOptions{pick: pick, asJSON: flags.asJSON})
+			if err != nil {
+				return err
+			}
+			if err := a.Connect(ctx, false, nil); err != nil {
+				return err
+			}
+			toJID = warmupRecipient(ctx, a.WA(), toJID, os.Stderr)
+			if err := warnRapidSendIfNeeded(a.StoreDir(), time.Now().UTC(), os.Stderr); err != nil {
+				return err
+			}
+
+			res, err := runSendOperation(ctx, reconnectForSend(a), func(ctx context.Context) (sendFileOutcome, error) {
+				return sendFile(ctx, a, toJID, filePath, sendFileOptions{
+					filename:      filename,
+					caption:       caption,
+					mimeOverride:  mimeOverride,
+					mediaAs:       mediaAs,
+					replyTo:       replyTo,
+					replyToSender: replyToSender,
+					ptt:           ptt,
+				})
+			})
+			if err != nil {
+				return err
+			}
+			warnSendStoreFailure(os.Stderr, res.id, res.storeWarning)
+
+			waitForPostSendRetryReceipts(ctx, postSendWait)
+
+			if flags.asJSON {
+				return out.WriteJSON(os.Stdout, addStoreWarning(map[string]any{
+					"sent": true,
+					"to":   toJID.String(),
+					"id":   res.id,
+					"file": res.meta,
+				}, res.storeWarning))
+			}
+			fmt.Fprintf(os.Stdout, "Sent %s to %s (id %s)\n", res.meta["name"], toJID.String(), res.id)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&to, "to", "", "recipient JID, phone number, or contact/group/chat name")
+	cmd.Flags().IntVar(&pick, "pick", 0, "when --to is ambiguous, pick the Nth match (1-indexed)")
+	cmd.Flags().StringVar(&filePath, "file", "", "path to file")
+	cmd.Flags().StringVar(&filename, "filename", "", "display name for the file (defaults to basename of --file)")
+	cmd.Flags().StringVar(&caption, "caption", "", "caption (images/videos/documents)")
+	cmd.Flags().StringVar(&mimeOverride, "mime", "", "override detected mime type")
+	cmd.Flags().StringVar(&mediaAs, "as", sendMediaTypeAuto, "force WhatsApp media type (auto|document|audio|image|video)")
+	cmd.Flags().StringVar(&replyTo, "reply-to", "", "message ID to quote/reply to")
+	cmd.Flags().StringVar(&replyToSender, "reply-to-sender", "", "sender JID of the quoted message (required for unsynced group replies)")
+	cmd.Flags().BoolVar(&ptt, "ptt", false, "send OGG/Opus audio as a WhatsApp voice note")
+	cmd.Flags().DurationVar(&postSendWait, "post-send-wait", postSendRetryReceiptWait, "keep the connection alive after send so retry receipts can be handled (0 disables)")
+	return cmd
+}

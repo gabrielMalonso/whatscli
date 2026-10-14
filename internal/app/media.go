@@ -11,9 +11,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/openclaw/wacli/internal/fsutil"
-	"github.com/openclaw/wacli/internal/pathutil"
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/pathutil"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 type mediaJob struct {

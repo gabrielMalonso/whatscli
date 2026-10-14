@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 )
 
 // MediaLocation is an already-confined parent directory. Check must recheck

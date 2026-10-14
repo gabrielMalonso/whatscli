@@ -8,16 +8,16 @@ import { escapeAttr, escapeHtml, renderMarkdown, tocFromHeadings, validateLinks 
 const root = process.cwd();
 const docsDir = path.join(root, "docs");
 const outDir = path.join(root, "dist", "docs-site");
-const repoBase = "https://github.com/openclaw/wacli";
+const repoBase = "https://github.com/gabrielMalonso/wacli";
 const repoEditBase = `${repoBase}/edit/main/docs`;
 const cname = readCname();
 const siteBase = cname ? `https://${cname}` : "";
 
-const productName = "wacli";
-const productTagline = "WhatsApp in your terminal";
+const productName = "WhatsCLI";
+const productTagline = "WhatsApp for Agents";
 const productDescription =
-  "A single Go CLI that pairs as a linked WhatsApp Web device, mirrors message history into local SQLite with FTS5 search, and exposes send, media, contact, and group workflows for terminals, scripts, and coding agents.";
-const brewInstall = "brew install openclaw/tap/wacli";
+  "WhatsCLI — WhatsApp for Agents. A single Go CLI that pairs as a linked WhatsApp Web device, mirrors message history into local SQLite with FTS5 search, and exposes send, media, contact, and group workflows for terminals, scripts, and coding agents.";
+const installCommand = "pnpm build";
 
 const sections = [
   ["Start", ["index.md", "install.md", "quickstart.md", "agent-daily-use.md", "overview.md"]],
@@ -254,15 +254,15 @@ function homeHero(page) {
     : "quickstart.html";
   const features = ["Pair", "Sync", "Search", "Send", "Media", "Contacts", "Chats", "Groups", "History", "Presence", "Doctor"];
   return `<header class="home-hero">
-        <p class="eyebrow">WhatsApp · One CLI</p>
+        <p class="eyebrow">WhatsCLI · Agent workflows</p>
         <h1>${escapeHtml(productTagline)}</h1>
         <p class="lede">${escapeHtml(description)}</p>
         <div class="home-cta">
           <a class="btn btn-primary" href="${quickstartRel}">Quickstart</a>
           <a class="btn btn-ghost" href="${repoBase}" rel="noopener">GitHub</a>
-          <div class="home-install" aria-label="Install with Homebrew">
+          <div class="home-install" aria-label="Build WhatsCLI from this checkout">
             <span class="prompt" aria-hidden="true">$</span>
-            <code>${escapeHtml(brewInstall)}</code>
+            <code>${escapeHtml(installCommand)}</code>
           </div>
         </div>
         <div class="home-services" aria-label="Capabilities">
@@ -339,7 +339,7 @@ function layout({ page, html, toc, prev, next, sectionName }) {
           <span class="mark" aria-hidden="true">
             <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" width="28" height="28" role="presentation"><path d="M16 3a13 13 0 0 0-11.18 19.6L3 29l6.6-1.74A13 13 0 1 0 16 3Zm7.6 18.43c-.32.9-1.86 1.7-2.6 1.78-.66.07-1.5.1-2.43-.15a13.5 13.5 0 0 1-2.2-.83c-3.88-1.68-6.4-5.6-6.6-5.85-.18-.26-1.55-2.06-1.55-3.93 0-1.86.98-2.78 1.32-3.16.34-.38.74-.47.99-.47.25 0 .5 0 .71.01.23.01.54-.09.84.64.32.79 1.07 2.66 1.16 2.86.1.2.16.43.03.69-.13.26-.2.42-.4.65-.2.23-.42.5-.6.68-.2.2-.41.4-.18.79.23.39 1.04 1.71 2.23 2.77 1.53 1.36 2.83 1.78 3.22 1.97.39.2.62.16.84-.1.23-.27.97-1.13 1.23-1.52.26-.39.52-.32.88-.2.36.13 2.27 1.07 2.66 1.27.39.2.65.3.74.46.1.17.1.96-.22 1.86Z" fill="#25d366"/></svg>
           </span>
-          <span><strong>${escapeHtml(productName)}</strong><small>WhatsApp CLI docs</small></span>
+          <span><strong>${escapeHtml(productName)}</strong><small>WhatsApp for Agents</small></span>
         </a>
         ${themeToggleMarkup()}
       </div>

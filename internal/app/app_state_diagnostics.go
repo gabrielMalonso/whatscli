@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openclaw/wacli/internal/store"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/wa"
 	"go.mau.fi/whatsmeow/appstate"
 )
 

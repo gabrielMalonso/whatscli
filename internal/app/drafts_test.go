@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/store"
 )
 
 func draftAppFixture(t *testing.T) *App {

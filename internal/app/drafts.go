@@ -13,8 +13,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/openclaw/wacli/internal/store"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/wa"
 )
 
 // DraftImageInput selects image preparation without legacy document fields.

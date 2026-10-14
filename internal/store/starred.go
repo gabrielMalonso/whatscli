@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openclaw/wacli/internal/store/storedb"
+	"github.com/gabrielMalonso/wacli/internal/store/storedb"
 )
 
 type SetStarredParams struct {

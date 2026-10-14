@@ -154,7 +154,7 @@ func (c *Client) Connect(ctx context.Context, opts ConnectOptions) error {
 
 	authed := cli.Store != nil && cli.Store.ID != nil
 	if !authed && !opts.AllowQR && opts.PairPhoneNumber == "" {
-		return fmt.Errorf("not authenticated; run `wacli auth`")
+		return fmt.Errorf("not authenticated; run `whatscli auth`")
 	}
 
 	var qrChan <-chan whatsmeow.QRChannelItem
@@ -257,24 +257,24 @@ func (c *Client) Connect(ctx context.Context, opts ConnectOptions) error {
 func qrChannelEventError(evt whatsmeow.QRChannelItem) error {
 	switch {
 	case evt == whatsmeow.QRChannelTimeout:
-		return fmt.Errorf("QR code timed out; run `wacli auth` again to get a new code")
+		return fmt.Errorf("QR code timed out; run `whatscli auth` again to get a new code")
 	case evt == whatsmeow.QRChannelClientOutdated:
-		return fmt.Errorf("WhatsApp client outdated; update wacli and try again")
+		return fmt.Errorf("WhatsApp client outdated; update whatscli and try again")
 	case evt == whatsmeow.QRChannelScannedWithoutMultidevice:
 		return fmt.Errorf("QR scanned, but multi-device is not enabled on the phone")
 	case evt == whatsmeow.QRChannelErrUnexpectedEvent:
-		return fmt.Errorf("unexpected QR pairing state; run `wacli auth` again")
+		return fmt.Errorf("unexpected QR pairing state; run `whatscli auth` again")
 	case evt.Event == whatsmeow.QRChannelEventPasskeyRequest:
-		return fmt.Errorf("WhatsApp requires passkey verification, which wacli cannot safely complete yet; preserve any existing authenticated store and check for an updated wacli release")
+		return fmt.Errorf("WhatsApp requires passkey verification, which whatscli cannot safely complete yet; preserve any existing authenticated store and check for an updated whatscli release")
 	case evt.Event == whatsmeow.QRChannelEventPasskeyResponse:
-		return fmt.Errorf("WhatsApp requires passkey confirmation, which wacli cannot safely complete yet; preserve any existing authenticated store and check for an updated wacli release")
+		return fmt.Errorf("WhatsApp requires passkey confirmation, which whatscli cannot safely complete yet; preserve any existing authenticated store and check for an updated whatscli release")
 	case evt.Event == whatsmeow.QRChannelEventError:
 		if evt.Error != nil {
 			return fmt.Errorf("QR pairing failed: %w", evt.Error)
 		}
 		return fmt.Errorf("QR pairing failed")
 	default:
-		return fmt.Errorf("unsupported QR pairing state %q; update wacli and try again", evt.Event)
+		return fmt.Errorf("unsupported QR pairing state %q; update whatscli and try again", evt.Event)
 	}
 }
 
@@ -378,7 +378,7 @@ func (c *Client) RequestHistorySyncOnDemand(ctx context.Context, lastKnown types
 		ownID = cli.Store.ID.ToNonAD()
 	}
 	if ownID.IsEmpty() {
-		return "", fmt.Errorf("not authenticated; run `wacli auth`")
+		return "", fmt.Errorf("not authenticated; run `whatscli auth`")
 	}
 
 	msg := cli.BuildHistorySyncRequest(&lastKnown, count)

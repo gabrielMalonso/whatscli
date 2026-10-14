@@ -3,7 +3,7 @@ package wa
 import (
 	"testing"
 
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/store"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/types/events"
 	"google.golang.org/protobuf/proto"

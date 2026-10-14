@@ -6,7 +6,7 @@ Newly accepted outbound contact drafts record searchable local history text as `
 
 Read when: sending text, files, stickers, locations, polls, status broadcasts, quoted replies, or reactions.
 
-`wacli send` requires authentication, a live connection, and writable mode. Send attempts are bounded and retry once after reconnect for known stale-session/usync timeout failures. `Sent to ...` and JSON `sent: true` mean WhatsApp accepted the send request and returned a message ID; they do not confirm recipient delivery. After a successful send, wacli keeps the connection alive briefly so whatsmeow can handle retry receipts from devices that could not decrypt the first copy. Repeated send commands within 5 seconds print a stderr warning so tight loops make WhatsApp rate-limit/account-risk visible.
+`whatscli send` requires authentication, a live connection, and writable mode. Send attempts are bounded and retry once after reconnect for known stale-session/usync timeout failures. `Sent to ...` and JSON `sent: true` mean WhatsApp accepted the send request and returned a message ID; they do not confirm recipient delivery. After a successful send, whatscli keeps the connection alive briefly so whatsmeow can handle retry receipts from devices that could not decrypt the first copy. Repeated send commands within 5 seconds print a stderr warning so tight loops make WhatsApp rate-limit/account-risk visible.
 
 When `sync --follow` is already running for the same store, send commands delegate the send to that running process instead of opening a second WhatsApp session. This keeps scripts usable while continuous sync owns the store lock.
 
@@ -15,18 +15,18 @@ All owner IPC requests share a **4 MiB inclusive input limit**, applied before b
 ## Commands
 
 ```bash
-wacli send text --to RECIPIENT --message TEXT [--message-escapes] [--pick N] [--mention USER] [--no-preview] [--allow-self] [--ephemeral] [--ephemeral-duration DURATION] [--reply-to MSG_ID] [--reply-to-sender JID] [--post-send-wait 2s]
-wacli send file --to RECIPIENT --file PATH [--pick N] [--caption TEXT] [--filename NAME] [--mime TYPE] [--as auto|document|audio|image|video] [--ptt] [--reply-to MSG_ID] [--reply-to-sender JID] [--post-send-wait 2s]
-wacli send sticker --to RECIPIENT --file PATH [--pick N] [--reply-to MSG_ID] [--reply-to-sender JID] [--post-send-wait 2s]
-wacli send voice --to RECIPIENT --file PATH [--pick N] [--mime TYPE] [--reply-to MSG_ID] [--reply-to-sender JID] [--post-send-wait 2s]
-wacli send location --to RECIPIENT --latitude LAT --longitude LNG [--name TEXT] [--pick N] [--post-send-wait 2s]
-wacli send react --to PHONE_OR_JID --id MSG_ID [--reaction TEXT] [--sender JID] [--post-send-wait 2s]
-wacli send poll --to RECIPIENT --question TEXT --option TEXT --option TEXT [--multi N] [--ephemeral] [--post-send-wait 2s]
-wacli send status [--message TEXT] [--file PATH] [--mime TYPE] [--background-color '#RRGGBB'] [--font N] [--post-send-wait 2s]
-wacli send select --to RECIPIENT --id MSG_ID (--label TEXT | --button-id ID | --index N) [--type list_row|quick_reply] [--pick N] [--sender JID] [--post-send-wait 2s]
-wacli poll vote --to RECIPIENT --id MSG_ID --option TEXT [--option TEXT] [--sender JID] [--post-send-wait 2s]
-wacli poll show --to RECIPIENT --id MSG_ID [--json]
-wacli polls list [--chat RECIPIENT] [--limit N] [--json]
+whatscli send text --to RECIPIENT --message TEXT [--message-escapes] [--pick N] [--mention USER] [--no-preview] [--allow-self] [--ephemeral] [--ephemeral-duration DURATION] [--reply-to MSG_ID] [--reply-to-sender JID] [--post-send-wait 2s]
+whatscli send file --to RECIPIENT --file PATH [--pick N] [--caption TEXT] [--filename NAME] [--mime TYPE] [--as auto|document|audio|image|video] [--ptt] [--reply-to MSG_ID] [--reply-to-sender JID] [--post-send-wait 2s]
+whatscli send sticker --to RECIPIENT --file PATH [--pick N] [--reply-to MSG_ID] [--reply-to-sender JID] [--post-send-wait 2s]
+whatscli send voice --to RECIPIENT --file PATH [--pick N] [--mime TYPE] [--reply-to MSG_ID] [--reply-to-sender JID] [--post-send-wait 2s]
+whatscli send location --to RECIPIENT --latitude LAT --longitude LNG [--name TEXT] [--pick N] [--post-send-wait 2s]
+whatscli send react --to PHONE_OR_JID --id MSG_ID [--reaction TEXT] [--sender JID] [--post-send-wait 2s]
+whatscli send poll --to RECIPIENT --question TEXT --option TEXT --option TEXT [--multi N] [--ephemeral] [--post-send-wait 2s]
+whatscli send status [--message TEXT] [--file PATH] [--mime TYPE] [--background-color '#RRGGBB'] [--font N] [--post-send-wait 2s]
+whatscli send select --to RECIPIENT --id MSG_ID (--label TEXT | --button-id ID | --index N) [--type list_row|quick_reply] [--pick N] [--sender JID] [--post-send-wait 2s]
+whatscli poll vote --to RECIPIENT --id MSG_ID --option TEXT [--option TEXT] [--sender JID] [--post-send-wait 2s]
+whatscli poll show --to RECIPIENT --id MSG_ID [--json]
+whatscli polls list [--chat RECIPIENT] [--limit N] [--json]
 ```
 
 ## Recipients
@@ -44,7 +44,7 @@ wacli polls list [--chat RECIPIENT] [--limit N] [--json]
 - `send text` fetches Open Graph metadata for the first `http://` or `https://` URL and sends it as a WhatsApp link preview.
 - Preview metadata fetches time out after 10 seconds and fall back to plain text.
 - Pass `--no-preview` to disable link-preview fetching.
-- `--ephemeral` sends text with `ContextInfo.Expiration`, matching the disappearing-send path. For groups, wacli uses the live group timer when available; otherwise it falls back to a 7-day default. Set `--ephemeral-duration` to choose an explicit expiration.
+- `--ephemeral` sends text with `ContextInfo.Expiration`, matching the disappearing-send path. For groups, whatscli uses the live group timer when available; otherwise it falls back to a 7-day default. Set `--ephemeral-duration` to choose an explicit expiration.
 - `--message` is literal by default. Pass `--message-escapes` to interpret `\n`, `\r`, `\t`, `\\`, and `\"` before sending.
 - Use repeatable `--mention USER` with a phone number or user JID to add WhatsApp mentions to `send text`.
 - `send text --reply-to` reconstructs the stored text or supported media quote content (image, video/GIF, audio, document, or sticker); stored media must have complete sync metadata.
@@ -80,8 +80,8 @@ wacli polls list [--chat RECIPIENT] [--limit N] [--json]
 - List rows from older stores are safely inferred as list responses, but older quick replies without `response_type` fail with a sync-again error.
 - Synced list rows and plain quick replies send the selected display text as a quoted reply to the original message.
 - This intentionally treats selection as a quoted text reply, not as a synthetic phone-tap event.
-- Native-flow quick replies are detected but not sent yet; wacli returns an explicit unsupported error instead of guessing the wire format.
-- The pinned SDK's response schema and send classification do not establish a compatible remote phone-tap payload; see [native-flow acceptance limits](continuous-acceptance.md#sdk-boundaries). Parsing a selectable control is not evidence that WACLI can dispatch it.
+- Native-flow quick replies are detected but not sent yet; whatscli returns an explicit unsupported error instead of guessing the wire format.
+- The pinned SDK's response schema and send classification do not establish a compatible remote phone-tap payload; see [native-flow acceptance limits](continuous-acceptance.md#sdk-boundaries). Parsing a selectable control is not evidence that WhatsCLI can dispatch it.
 - Sent selections are stored locally as `Selected: <display text>` and support JSON output for scripts.
 
 ## Status broadcasts
@@ -109,7 +109,7 @@ wacli polls list [--chat RECIPIENT] [--limit N] [--json]
 - Set `WACLI_MEDIA_ROOTS` to a platform path-list of absolute directories (`:` on Unix, `;` on Windows) to confine which local files `send file`, `send voice`, `send sticker` and `send status --file` may upload. The file must resolve, symlinks included, to a path inside one of them; anything else is refused before the store is opened or a running `sync --follow` is asked to send. Unset or empty keeps the default of no restriction. Relative roots and nonempty lists without directories are errors; missing roots are skipped. Set the variable in both the invoking CLI and the `sync --follow` environment: the CLI checks before delegation, and an upgraded daemon enforces its own roots when it opens the upload. Restart sync after configuring this policy. Symlinked roots work; symlinks that escape all configured roots are refused. This is an upload guardrail, not an OS sandbox for a process that can change its own environment or the allowed files.
 - File uploads are capped at 100 MiB.
 - MIME type is detected automatically unless `--mime` is set.
-- WhatsApp derives the message bubble (image, video, audio, or document) from the message type, which wacli picks from the MIME by default. Use `--as auto|document|audio|image|video` to force it. For example, `--mime audio/mpeg --as document` delivers an mp3 as a downloadable document instead of an inline audio bubble, matching how the mobile app attaches files. `--as auto` (the default) keeps MIME-based detection. `--ptt` only accepts `--as auto` or `--as audio`.
+- WhatsApp derives the message bubble (image, video, audio, or document) from the message type, which whatscli picks from the MIME by default. Use `--as auto|document|audio|image|video` to force it. For example, `--mime audio/mpeg --as document` delivers an mp3 as a downloadable document instead of an inline audio bubble, matching how the mobile app attaches files. `--as auto` (the default) keeps MIME-based detection. `--ptt` only accepts `--as auto` or `--as audio`.
 - `--filename` changes the displayed document name.
 - Captions apply to images, videos, and documents.
 - Files sent to channels use WhatsApp's unencrypted newsletter media upload path and include the upstream media handle required by `whatsmeow`.
@@ -123,26 +123,26 @@ wacli polls list [--chat RECIPIENT] [--limit N] [--json]
 ## Examples
 
 ```bash
-wacli send text --to mom --message "landed"
-wacli send text --to mom --message "auto delete this" --ephemeral
-wacli send text --to mom --message "auto delete this in 7 days" --ephemeral-duration 7d
-wacli send text --to "Family" --message "auto delete this" --ephemeral
-wacli send text --to mom --message "line1\nline2" --message-escapes
-wacli send text --to "Family" --pick 2 --message "on my way"
-wacli send text --to "Family" --message "hey @15551234567" --mention +15551234567
-wacli send text --to 1234567890 --message "replying" --reply-to ABC123
-wacli send file --to 1234567890 --file ./pic.jpg --caption "hi"
-wacli send file --to 1234567890 --file /tmp/report --filename report.pdf
-wacli send sticker --to 1234567890 --file ./sticker-512.webp
-wacli send voice --to 1234567890 --file ./voice.ogg
-wacli send location --to 1234567890 --latitude 51.4779 --longitude -0.0015 --name "Royal Observatory"
-wacli send react --to 1234567890 --id ABC123 --reaction "❤️"
-wacli send poll --to "Family" --question "Dinner?" --option "Pizza" --option "Sushi" --multi 1
-wacli send status --message "available today" --background-color '#1f7a8c' --font 1
-wacli send status --file ./photo.jpg --message "new update"
-wacli send select --to "Example Bot" --id ABC123 --label "View available lessons" --json
-wacli send select --to "Example Bot" --id ABC123 --index 2 --type list_row
-wacli poll vote --to "Family" --id ABC123 --option "Pizza"
-wacli poll show --to "Family" --id ABC123 --json
-wacli polls list --chat "Family" --limit 10
+whatscli send text --to mom --message "landed"
+whatscli send text --to mom --message "auto delete this" --ephemeral
+whatscli send text --to mom --message "auto delete this in 7 days" --ephemeral-duration 7d
+whatscli send text --to "Family" --message "auto delete this" --ephemeral
+whatscli send text --to mom --message "line1\nline2" --message-escapes
+whatscli send text --to "Family" --pick 2 --message "on my way"
+whatscli send text --to "Family" --message "hey @15551234567" --mention +15551234567
+whatscli send text --to 1234567890 --message "replying" --reply-to ABC123
+whatscli send file --to 1234567890 --file ./pic.jpg --caption "hi"
+whatscli send file --to 1234567890 --file /tmp/report --filename report.pdf
+whatscli send sticker --to 1234567890 --file ./sticker-512.webp
+whatscli send voice --to 1234567890 --file ./voice.ogg
+whatscli send location --to 1234567890 --latitude 51.4779 --longitude -0.0015 --name "Royal Observatory"
+whatscli send react --to 1234567890 --id ABC123 --reaction "❤️"
+whatscli send poll --to "Family" --question "Dinner?" --option "Pizza" --option "Sushi" --multi 1
+whatscli send status --message "available today" --background-color '#1f7a8c' --font 1
+whatscli send status --file ./photo.jpg --message "new update"
+whatscli send select --to "Example Bot" --id ABC123 --label "View available lessons" --json
+whatscli send select --to "Example Bot" --id ABC123 --index 2 --type list_row
+whatscli poll vote --to "Family" --id ABC123 --option "Pizza"
+whatscli poll show --to "Family" --id ABC123 --json
+whatscli polls list --chat "Family" --limit 10
 ```

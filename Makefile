@@ -14,7 +14,7 @@ help:
 	@printf '%s\n' \
 		'Available targets:' \
 		'  help            Print available targets (default).' \
-		'  build           Build the CLI into dist/wacli.' \
+		'  build           Build the CLI into dist/whatscli.' \
 		'  test            Run the full Go, FTS, cross-build, and docs test suite.' \
 		'  fmt             Check Go formatting.' \
 		'  lint            Run vet, vulnerability, and dead-code checks.' \

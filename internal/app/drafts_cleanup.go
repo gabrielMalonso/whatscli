@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/store"
 )
 
 type DraftCleanupRequest struct {
@@ -158,7 +158,7 @@ func (a *App) cleanupDraftSnapshot(ctx context.Context, request DraftCleanupRequ
 	}
 	// os.Root confines the operation, but portable APIs have no atomic
 	// compare-inode-and-unlink. External non-cooperating path/content changes can
-	// race this last check; LOCK protects cooperating wacli writers only.
+	// race this last check; LOCK protects cooperating whatscli writers only.
 	result.Effect, result.RemovedBytes = DraftCleanupUnknown, nil
 	if err := disk.remove(snapshot.media, snapshot.name); err != nil {
 		return fail(store.DraftCleanupOutcomeUncertain, err)

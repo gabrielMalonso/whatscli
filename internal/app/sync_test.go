@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/store"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/wa"
 	"go.mau.fi/whatsmeow/appstate"
 	waBinary "go.mau.fi/whatsmeow/binary"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
@@ -940,7 +940,7 @@ func TestArchiveChatPNUsesFreshKeylessMessageRange(t *testing.T) {
 		t.Fatalf("UpsertMessage: %v", err)
 	}
 	// remoteReactionTS intentionally has no local row, matching a linked client
-	// that knows about a newer reaction than wacli's message store.
+	// that knows about a newer reaction than whatscli's message store.
 
 	if err := a.ArchiveChat(context.Background(), chat, true); err != nil {
 		t.Fatalf("ArchiveChat: %v", err)
@@ -3700,7 +3700,7 @@ func TestSyncRetriesTransientAuthConnectFailure(t *testing.T) {
 	a := newTestApp(t)
 	f := newFakeWA()
 	f.authed = false
-	f.connectErrs = []error{fmt.Errorf("QR code timed out; run `wacli auth` again")}
+	f.connectErrs = []error{fmt.Errorf("QR code timed out; run `whatscli auth` again")}
 	a.wa = f
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -3722,7 +3722,7 @@ func TestSyncRetriesTransientAuthConnectFailure(t *testing.T) {
 func TestSyncDoesNotRetryTransientConnectFailureOutsideAuthFlow(t *testing.T) {
 	a := newTestApp(t)
 	f := newFakeWA()
-	f.connectErrs = []error{fmt.Errorf("QR code timed out; run `wacli auth` again")}
+	f.connectErrs = []error{fmt.Errorf("QR code timed out; run `whatscli auth` again")}
 	a.wa = f
 
 	_, err := a.Sync(context.Background(), SyncOptions{

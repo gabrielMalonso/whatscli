@@ -2,18 +2,18 @@
 
 Read when: managing the authenticated WhatsApp profile or fetching profile metadata for a WhatsApp user.
 
-`wacli profile` manages account-level WhatsApp profile settings for the linked account.
+`whatscli profile` manages account-level WhatsApp profile settings for the linked account.
 
 ## Command
 
 ```bash
-wacli profile set-picture <image>
-wacli profile remove-picture
-wacli profile set-about <text>
-wacli profile set-name <name>
-wacli profile picture-info --jid <jid-or-phone> [--preview] [--existing-id ID]
-wacli profile get-about --jid <jid-or-phone>
-wacli profile business --jid <jid-or-phone>
+whatscli profile set-picture <image>
+whatscli profile remove-picture
+whatscli profile set-about <text>
+whatscli profile set-name <name>
+whatscli profile picture-info --jid <jid-or-phone> [--preview] [--existing-id ID]
+whatscli profile get-about --jid <jid-or-phone>
+whatscli profile business --jid <jid-or-phone>
 ```
 
 ## Notes
@@ -33,12 +33,12 @@ wacli profile business --jid <jid-or-phone>
 ## Examples
 
 ```bash
-wacli profile set-picture ./avatar.jpg
-wacli profile set-picture ./avatar.png --json
-wacli profile remove-picture
-wacli profile set-about "Available today"
-wacli profile set-name "Ops Desk"
-wacli profile picture-info --jid +15551234567 --json
-wacli profile get-about --jid 15551234567@s.whatsapp.net
-wacli profile business --jid +15551234567 --json
+whatscli profile set-picture ./avatar.jpg
+whatscli profile set-picture ./avatar.png --json
+whatscli profile remove-picture
+whatscli profile set-about "Available today"
+whatscli profile set-name "Ops Desk"
+whatscli profile picture-info --jid +15551234567 --json
+whatscli profile get-about --jid 15551234567@s.whatsapp.net
+whatscli profile business --jid +15551234567 --json
 ```

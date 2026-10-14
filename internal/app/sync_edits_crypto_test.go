@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/sqliteutil"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/wacli/internal/sqliteutil"
+	"github.com/gabrielMalonso/wacli/internal/wa"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waAdv"
 	"go.mau.fi/whatsmeow/proto/waCommon"

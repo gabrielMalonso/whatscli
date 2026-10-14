@@ -9,10 +9,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/openclaw/wacli/internal/fsutil"
-	"github.com/openclaw/wacli/internal/out"
-	"github.com/openclaw/wacli/internal/store"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/wacli/internal/fsutil"
+	"github.com/gabrielMalonso/wacli/internal/out"
+	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/wa"
 	"go.mau.fi/whatsmeow"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/proto/waCommon"
@@ -308,7 +308,7 @@ func (a *App) EnsureAuthedWithoutMigration(ctx context.Context) error {
 	if a.wa.IsAuthed() {
 		return nil
 	}
-	return fmt.Errorf("not authenticated; run `wacli auth`")
+	return fmt.Errorf("not authenticated; run `whatscli auth`")
 }
 
 func (a *App) WA() WAClient {

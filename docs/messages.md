@@ -2,23 +2,23 @@
 
 Read when: listing, searching, exporting, showing, inspecting local message context, or mutating stored messages.
 
-Most `wacli messages` commands read from the local store. `messages edit`, `messages delete`, `messages revoke`, and `messages forward` are remote WhatsApp mutations and require an authenticated, writable store.
+Most `whatscli messages` commands read from the local store. `messages edit`, `messages delete`, `messages revoke`, and `messages forward` are remote WhatsApp mutations and require an authenticated, writable store.
 WhatsApp status broadcasts are stored separately in `status_messages`; they are not returned by `messages list`, `messages search`, or `messages export`.
 
 ## Commands
 
 ```bash
-wacli messages list [--chat JID] [--sender JID] [--from-me|--from-them] [--asc] [--limit N] [--after DATE] [--before DATE] [--forwarded] [--starred]
-wacli messages search <query> [--chat JID] [--from JID] [--has-media] [--type text|image|video|audio|document] [--forwarded] [--starred] [--limit N] [--after DATE] [--before DATE]
-wacli messages starred [--chat JID] [--limit N] [--after DATE] [--before DATE] [--asc]
-wacli messages export [--chat JID] [--limit N] [--after DATE] [--before DATE] [--output PATH]
-wacli messages show --chat JID --id MSG_ID
-wacli messages context --chat JID --id MSG_ID [--before N] [--after N]
-wacli messages edit --chat JID --id MSG_ID --message TEXT [--post-send-wait 2s]
-wacli messages delete --chat JID --id MSG_ID [--for-me] [--delete-media] [--post-send-wait 2s]
-wacli messages purge --chat JID --id MSG_ID [--dry-run] [--confirm]
-wacli messages revoke --chat JID --id MSG_ID [--post-send-wait 2s]
-wacli messages forward --chat JID --id MSG_ID --to RECIPIENT [--pick N] [--post-send-wait 2s]
+whatscli messages list [--chat JID] [--sender JID] [--from-me|--from-them] [--asc] [--limit N] [--after DATE] [--before DATE] [--forwarded] [--starred]
+whatscli messages search <query> [--chat JID] [--from JID] [--has-media] [--type text|image|video|audio|document] [--forwarded] [--starred] [--limit N] [--after DATE] [--before DATE]
+whatscli messages starred [--chat JID] [--limit N] [--after DATE] [--before DATE] [--asc]
+whatscli messages export [--chat JID] [--limit N] [--after DATE] [--before DATE] [--output PATH]
+whatscli messages show --chat JID --id MSG_ID
+whatscli messages context --chat JID --id MSG_ID [--before N] [--after N]
+whatscli messages edit --chat JID --id MSG_ID --message TEXT [--post-send-wait 2s]
+whatscli messages delete --chat JID --id MSG_ID [--for-me] [--delete-media] [--post-send-wait 2s]
+whatscli messages purge --chat JID --id MSG_ID [--dry-run] [--confirm]
+whatscli messages revoke --chat JID --id MSG_ID [--post-send-wait 2s]
+whatscli messages forward --chat JID --id MSG_ID --to RECIPIENT [--pick N] [--post-send-wait 2s]
 ```
 
 ## Agent pagination
@@ -27,7 +27,7 @@ wacli messages forward --chat JID --id MSG_ID --to RECIPIENT [--pick N] [--post-
 
 ## Search
 
-Agent temporal search uses `wacli --agent messages search "invoice" --sort time [--asc] [--cursor TOKEN]`. It returns `meta.page` and resumes by `(ts,rowid)` with the same store, query, engine, filters and order; limit/detail may change. Search `--sort`/`--asc` require `--agent`. Default `--sort relevance` preserves FTS rank or existing LIKE newest-first order, has no cursor/page, and reports `search_mode` plus effective `order`. A cursor or `--asc` with relevance fails with guidance to use `--sort time`. List cursors remain compatible but cannot be exchanged with search cursors. See the [temporal search contract](agent.md#temporal-search-pagination) for matching, cost and live-read limits.
+Agent temporal search uses `whatscli --agent messages search "invoice" --sort time [--asc] [--cursor TOKEN]`. It returns `meta.page` and resumes by `(ts,rowid)` with the same store, query, engine, filters and order; limit/detail may change. Search `--sort`/`--asc` require `--agent`. Default `--sort relevance` preserves FTS rank or existing LIKE newest-first order, has no cursor/page, and reports `search_mode` plus effective `order`. A cursor or `--asc` with relevance fails with guidance to use `--sort time`. List cursors remain compatible but cannot be exchanged with search cursors. See the [temporal search contract](agent.md#temporal-search-pagination) for matching, cost and live-read limits.
 
 - Uses SQLite FTS5 when the binary was built with `-tags sqlite_fts5`.
 - Falls back to `LIKE` if FTS5 is not available.
@@ -81,18 +81,18 @@ When a phone-number chat JID maps to a stored `@lid` row, list/search/show/conte
 ## Examples
 
 ```bash
-wacli messages list --chat 1234567890@s.whatsapp.net --asc
-wacli messages list --from-me --limit 20
-wacli messages starred --limit 20
-wacli messages search "invoice" --has-media --type document
-wacli messages search "invoice" --starred
-wacli messages export --chat 1234567890@s.whatsapp.net --after 2024-01-01 --before 2024-02-01 --output messages.json
-wacli messages show --chat 1234567890@s.whatsapp.net --id ABC123
-wacli messages context --chat 1234567890@s.whatsapp.net --id ABC123 --before 3 --after 3
-wacli messages edit --chat 1234567890@s.whatsapp.net --id ABC123 --message "updated text"
-wacli messages delete --chat 1234567890@s.whatsapp.net --id ABC123
-wacli messages delete --chat 1234567890@s.whatsapp.net --id ABC123 --for-me
-wacli messages purge --chat 1234567890@s.whatsapp.net --id ABC123 --dry-run
-wacli messages revoke --chat 1234567890@s.whatsapp.net --id ABC123
-wacli messages forward --chat 1234567890@s.whatsapp.net --id ABC123 --to "Family"
+whatscli messages list --chat 1234567890@s.whatsapp.net --asc
+whatscli messages list --from-me --limit 20
+whatscli messages starred --limit 20
+whatscli messages search "invoice" --has-media --type document
+whatscli messages search "invoice" --starred
+whatscli messages export --chat 1234567890@s.whatsapp.net --after 2024-01-01 --before 2024-02-01 --output messages.json
+whatscli messages show --chat 1234567890@s.whatsapp.net --id ABC123
+whatscli messages context --chat 1234567890@s.whatsapp.net --id ABC123 --before 3 --after 3
+whatscli messages edit --chat 1234567890@s.whatsapp.net --id ABC123 --message "updated text"
+whatscli messages delete --chat 1234567890@s.whatsapp.net --id ABC123
+whatscli messages delete --chat 1234567890@s.whatsapp.net --id ABC123 --for-me
+whatscli messages purge --chat 1234567890@s.whatsapp.net --id ABC123 --dry-run
+whatscli messages revoke --chat 1234567890@s.whatsapp.net --id ABC123
+whatscli messages forward --chat 1234567890@s.whatsapp.net --id ABC123 --to "Family"
 ```

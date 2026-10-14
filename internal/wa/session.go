@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/gabrielMalonso/wacli/internal/sqliteutil"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/openclaw/wacli/internal/sqliteutil"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types/events"
@@ -46,7 +46,7 @@ func (c *Client) init() (err error) {
 	logger := newWhatsmeowLogger("Client", "ERROR", c.diagnosticWriter())
 	c.client = whatsmeow.NewClient(deviceStore, logger)
 	// FetchAppStateEvents fails closed without this: recovery snapshots must
-	// return every mutation so wacli can rebuild its own database.
+	// return every mutation so whatscli can rebuild its own database.
 	c.client.EmitAppStateEventsOnFullSync = true
 	// Persist recently-sent messages so whatsmeow can answer retry-receipts
 	// across process restarts. Without this, recipients whose Signal session

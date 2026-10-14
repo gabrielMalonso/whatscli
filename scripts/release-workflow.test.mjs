@@ -12,6 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -20,12 +21,24 @@ const darwinConfig = readFileSync(`${root}/.goreleaser.yaml`, 'utf8');
 const releaseDocs = readFileSync(`${root}/docs/release.md`, 'utf8');
 
 test('release caller pins the fleet v1 split-host workflow', () => {
+  assert.match(releaseWorkflow, /if: github\.repository == 'openclaw\/wacli'/);
   assert.match(releaseWorkflow, /uses: openclaw\/release-workflows\/\.github\/workflows\/release-go-cli\.yml@v1/);
   assert.match(releaseWorkflow, /split-goreleaser-config: \.goreleaser-linux-windows\.yaml/);
   assert.match(releaseWorkflow, /reproducible-rebuild: non-darwin/);
   assert.match(releaseWorkflow, /stable-identifier: org\.openclaw\.wacli/);
   assert.match(releaseWorkflow, /checksum-filename: checksums\.txt/);
   assert.match(releaseWorkflow, /archive-files: '\["LICENSE","README\.md"\]'/);
+});
+
+test('legacy publisher refuses fork publication before running external commands', () => {
+  const result = spawnSync(process.execPath, [`${root}/scripts/release-local.mjs`, 'publish'], {
+    cwd: root,
+    env: { ...process.env, PATH: '' },
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /WhatsCLI publication and signing are not configured/);
 });
 
 test('release caller maps every required repository secret', () => {
@@ -48,11 +61,11 @@ test('shared workflow owns universal assembly and native verification', () => {
 });
 
 test('Darwin preparation requires a literally matching dated changelog heading', async (t) => {
-  const fixture = realpathSync(mkdtempSync(path.join(tmpdir(), 'wacli-release-source-')));
+  const fixture = realpathSync(mkdtempSync(path.join(tmpdir(), 'whatscli-release-source-')));
   t.after(() => rmSync(fixture, { recursive: true, force: true }));
   cpSync(path.join(root, 'scripts'), path.join(fixture, 'scripts'), { recursive: true });
-  mkdirSync(path.join(fixture, 'cmd/wacli'), { recursive: true });
-  writeFileSync(path.join(fixture, 'cmd/wacli/root.go'), 'const sourceVersion = "0.17.2"\n');
+  mkdirSync(path.join(fixture, 'cmd/whatscli'), { recursive: true });
+  writeFileSync(path.join(fixture, 'cmd/whatscli/root.go'), 'const sourceVersion = "0.17.2"\n');
   const goMod = readFileSync(path.join(root, 'go.mod'), 'utf8');
   writeFileSync(path.join(fixture, 'go.mod'), goMod);
   const { prepareDarwinRelease } = await import(

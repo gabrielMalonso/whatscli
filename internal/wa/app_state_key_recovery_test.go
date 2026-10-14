@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	appStore "github.com/openclaw/wacli/internal/store"
+	appStore "github.com/gabrielMalonso/wacli/internal/store"
 	"path/filepath"
 	"testing"
 	"time"

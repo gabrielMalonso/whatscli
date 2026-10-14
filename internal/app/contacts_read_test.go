@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/gabrielMalonso/wacli/internal/store"
 	"github.com/mattn/go-sqlite3"
-	"github.com/openclaw/wacli/internal/store"
 )
 
 func newContactPageFixture(t *testing.T) (*App, string) {

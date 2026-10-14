@@ -1,11 +1,11 @@
 version: 2
 
-project_name: wacli
+project_name: whatscli
 
 builds:
   - id: wacli
-    main: ./cmd/wacli
-    binary: wacli
+    main: ./cmd/whatscli
+    binary: whatscli
     env:
       - CGO_ENABLED=1
       - MACOSX_DEPLOYMENT_TARGET=15.0

@@ -1,28 +1,37 @@
 # Release
 
-Read when: preparing or verifying an official wacli release.
+Read when: preparing WhatsCLI artifacts or reviewing inherited release infrastructure.
 
-wacli uses the fleet-standard reusable Go CLI workflow from `openclaw/release-workflows@v1`. The repository wrapper is intentionally thin: it supplies the wacli artifact contract and maps repository secrets, while the shared workflow owns source freezing, the annotated tag, builds, signing, notarization, independent verification, publication, Homebrew handoff, and changelog closeout.
+WhatsCLI — WhatsApp for Agents is maintained in [gabrielMalonso/wacli](https://github.com/gabrielMalonso/wacli). The product rebrand does not rename the GitHub repository or publish a release automatically.
 
-## Release contract
-
-- Dispatch `.github/workflows/release.yml` from the protected default branch with the version to release.
-- `CHANGELOG.md` must contain exactly one dated level-two section for that version, and `cmd/wacli/root.go` must already report it.
-- The canonical GoReleaser config builds the Darwin CGO binaries on macOS.
-- `.goreleaser-linux-windows.yaml` builds Linux amd64/arm64 and Windows amd64 with the fixed cross-compilers supplied by the shared workflow.
-- `LICENSE` and `README.md` are preserved in every archive, and the published checksum asset remains `checksums.txt`.
-- Official Darwin archives target macOS 15.0 (Sequoia) or newer on both architectures; verify `LC_BUILD_VERSION` for each published binary.
-- Every Darwin binary retains the established `org.openclaw.wacli` identifier and OpenClaw Foundation Developer ID identity.
-- The independent rebuild must reproduce every staged Linux and Windows binary byte-for-byte before publication.
-- Build and verification use the exact preferred `toolchain` from the frozen commit's `go.mod` (currently Go 1.27.1); the `go` directive remains the Go 1.27.0 source minimum. Historical commits without a `toolchain` directive use their exact `go` version.
-- The published release must hand off exact verified assets to `openclaw/homebrew-tap`. Keep an empty `Unreleased` section above the dated release notes; if that section is absent, the workflow opens a closeout PR to restore it. Closeout does not bump the source version.
-
-## Dispatch
+## Local builds
 
 ```bash
-gh workflow run release.yml --repo openclaw/wacli --ref main -f version=0.20.0
+pnpm build
+./dist/whatscli --version
 ```
 
-Watch the exact run through completion. A successful run is not sufficient on its own: verify the public release is non-draft and non-prerelease, its tag peels to the frozen protected-main commit, every expected asset is present, `checksums.txt` validates the downloaded assets, both native macOS verifier jobs passed, the Homebrew update run succeeded, and the empty `Unreleased` section is present. If a closeout PR was needed, merge it after its checks pass.
+The primary executable is `whatscli`. Local builds additionally create `dist/wacli` for existing scripts. Both use the same account/store configuration and databases; no rebrand data migration is needed.
 
-Retries reuse the immutable annotated version tag and its frozen commit. Never move or replace a consumer release tag to recover from a failed run; fix the shared workflow or caller on `main`, then dispatch the same version again.
+## Artifact contract
+
+- `.goreleaser.yaml` builds macOS `whatscli` binaries; `.goreleaser-linux-windows.yaml` builds Linux and Windows binaries.
+- Archives are named `whatscli_<version>_<os>_<arch>.tar.gz`, or `.zip` on Windows, and contain `whatscli` (`whatscli.exe` on Windows), `LICENSE`, and `README.md`.
+- `checksums.txt` remains the checksum asset. The original MIT notice and WhatsCLI modification copyright travel with every archive.
+- GoReleaser build IDs and the existing release linker marker remain unchanged so internal verification and CI selectors stay compatible.
+- Source version stays in `cmd/whatscli/root.go`; release tooling reads it from that path.
+- The preferred build toolchain remains Go 1.27.1, with the Go 1.27.0 source minimum declared in `go.mod`.
+
+A credential-free macOS snapshot can be built with `make snapshot` on macOS. For Linux and Windows, use the split config with the matching C cross-compilers:
+
+```bash
+goreleaser release --snapshot --clean --skip=publish --config .goreleaser-linux-windows.yaml
+```
+
+## Publication status
+
+The inherited `.github/workflows/release.yml` relies on OpenClaw’s shared release workflow, Developer ID identity, and Homebrew tap. It is restricted to the upstream repository and cannot publish this fork. The legacy local publisher is also unavailable for WhatsCLI; its signing checks are retained as upstream reference code, not as a claim that WhatsCLI is signed by OpenClaw.
+
+Before enabling publication, configure a fork-owned release workflow, macOS signing/notarization identity and any desired Homebrew tap, then update the corresponding verifiers. No WhatsCLI tap, hosted documentation domain, or signing identity is asserted by this rebrand. Those are separate maintainer decisions, not dependencies for local use.
+
+Release/tag/deploy actions require separate explicit authorization. Never dispatch upstream publication or update `openclaw/homebrew-tap` from this fork. Follow [fork maintenance](fork-maintenance.md) for scoped PRs and upstream updates.

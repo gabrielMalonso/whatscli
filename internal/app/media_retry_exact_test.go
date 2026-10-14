@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/store"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waMmsRetry"
 	"go.mau.fi/whatsmeow/types"

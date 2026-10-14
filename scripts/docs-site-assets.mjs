@@ -158,8 +158,8 @@ const COPY_ICON='${copyIconMarkup()}';
 const html=document.documentElement;
 const themeBtn=document.querySelector('.theme-toggle');
 function applyTheme(t){html.setAttribute('data-theme',t);if(themeBtn){themeBtn.setAttribute('aria-pressed',t==='dark'?'true':'false');themeBtn.setAttribute('aria-label',t==='dark'?'Switch to light mode':'Switch to dark mode');themeBtn.title=t==='dark'?'Switch to light mode':'Switch to dark mode'}}
-function readStoredTheme(){try{return localStorage.getItem('wacli-theme')}catch{return null}}
-function storeTheme(t){try{localStorage.setItem('wacli-theme',t)}catch{}}
+function readStoredTheme(){try{return localStorage.getItem('whatscli-theme')}catch{return null}}
+function storeTheme(t){try{localStorage.setItem('whatscli-theme',t)}catch{}}
 applyTheme(html.getAttribute('data-theme')||'light');
 themeBtn?.addEventListener('click',()=>{const next=html.getAttribute('data-theme')==='dark'?'light':'dark';applyTheme(next);storeTheme(next)});
 const prefersDark=window.matchMedia('(prefers-color-scheme: dark)');
@@ -237,7 +237,7 @@ if(tocLinks.length){const map=new Map();tocLinks.forEach(a=>{const id=a.getAttri
 }
 
 export function themeBootstrapScript() {
-  return `(function(){try{var s=localStorage.getItem('wacli-theme');var t=s||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;
+  return `(function(){try{var s=localStorage.getItem('whatscli-theme');var t=s||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;
 }
 
 export function themeToggleMarkup() {
@@ -252,7 +252,7 @@ function copyIconMarkup() {
 }
 
 export function faviconSvg() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="wacli">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="WhatsCLI">
 <rect width="64" height="64" rx="14" fill="#075e54"/>
 <path d="M32 12a20 20 0 0 0-17.2 30.16L12 54l12.2-2.8A20 20 0 1 0 32 12Zm11.7 28.36c-.5 1.4-2.86 2.62-4 2.74-1 .12-2.3.16-3.74-.22a20.7 20.7 0 0 1-3.4-1.28c-5.96-2.58-9.84-8.62-10.14-9-.3-.4-2.4-3.18-2.4-6.06s1.5-4.28 2.04-4.86c.52-.58 1.14-.72 1.52-.72.38 0 .76 0 1.1.02.36.02.84-.14 1.3.98.5 1.22 1.66 4.1 1.8 4.4.16.3.26.66.04 1.06-.2.4-.32.66-.62 1-.32.36-.66.78-.94 1.04-.3.3-.62.62-.26 1.22.36.6 1.6 2.64 3.44 4.28 2.36 2.1 4.36 2.74 4.96 3.04.6.3.96.26 1.32-.16.34-.4 1.5-1.74 1.9-2.34.4-.6.8-.5 1.36-.3.56.2 3.5 1.66 4.1 1.96.6.3 1 .46 1.14.72.16.26.16 1.5-.32 2.86Z" fill="#25d366"/>
 </svg>`;
@@ -260,8 +260,8 @@ export function faviconSvg() {
 
 export function socialCardSvg() {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">wacli documentation</title>
-  <desc id="desc">WhatsApp in your terminal</desc>
+  <title id="title">WhatsCLI documentation</title>
+  <desc id="desc">WhatsApp for Agents</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#06120f"/>
@@ -276,8 +276,8 @@ export function socialCardSvg() {
     <path d="M64 22a42 42 0 0 0-36.08 63.38L22 106l21.38-5.63A42 42 0 1 0 64 22Zm24.6 59.55c-1.03 2.9-6.01 5.5-8.4 5.76-2.14.23-4.85.32-7.86-.48a43.5 43.5 0 0 1-7.12-2.67C52.68 78.72 44.53 66.03 43.88 65.23c-.57-.84-5-6.68-5-12.73 0-6.01 3.17-8.97 4.27-10.2 1.1-1.22 2.39-1.53 3.2-1.53.8 0 1.62 0 2.29.04.76.04 1.76-.29 2.73 2.06 1.03 2.56 3.47 8.59 3.76 9.26.32.65.52 1.39.1 2.23-.42.84-.65 1.35-1.3 2.1-.65.74-1.36 1.62-1.95 2.2-.65.65-1.34 1.3-.57 2.56.74 1.26 3.36 5.53 7.21 8.94 4.96 4.39 9.16 5.76 10.42 6.37 1.26.65 2 .52 2.71-.32.74-.88 3.13-3.65 3.97-4.9.84-1.26 1.68-1.03 2.86-.65 1.15.42 7.35 3.47 8.59 4.1 1.28.65 2.1.97 2.39 1.49.32.55.32 3.11-.71 6.01Z" fill="#25d366"/>
   </g>
   <text x="114" y="315" fill="#ffffff" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="104" font-weight="700">wacli</text>
-  <text x="114" y="388" fill="#dcfce7" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="44" font-weight="600">WhatsApp in your terminal</text>
-  <text x="114" y="468" fill="#b7c8c0" font-family="JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace" font-size="32">$ brew install openclaw/tap/wacli</text>
+  <text x="114" y="388" fill="#dcfce7" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="44" font-weight="600">WhatsApp for Agents</text>
+  <text x="114" y="468" fill="#b7c8c0" font-family="JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace" font-size="28">$ whatscli --read-only capabilities --agent</text>
   <g fill="#9af1b7" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="28" font-weight="600">
     <text x="742" y="150">sync</text>
     <text x="857" y="150">search</text>

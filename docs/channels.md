@@ -2,15 +2,15 @@
 
 Read when: listing, joining, leaving, inspecting, or sending to WhatsApp Channels.
 
-`wacli channels` manages WhatsApp Channels, which `whatsmeow` calls newsletters. Commands use live WhatsApp APIs and require authentication. Commands that update WhatsApp or the local chat cache require writable mode.
+`whatscli channels` manages WhatsApp Channels, which `whatsmeow` calls newsletters. Commands use live WhatsApp APIs and require authentication. Commands that update WhatsApp or the local chat cache require writable mode.
 
 ## Commands
 
 ```bash
-wacli channels list
-wacli channels info --jid CHANNEL_JID
-wacli channels join --invite LINK_OR_CODE
-wacli channels leave --jid CHANNEL_JID
+whatscli channels list
+whatscli channels info --jid CHANNEL_JID
+whatscli channels join --invite LINK_OR_CODE
+whatscli channels leave --jid CHANNEL_JID
 ```
 
 ## Notes
@@ -29,10 +29,10 @@ wacli channels leave --jid CHANNEL_JID
 ## Examples
 
 ```bash
-wacli channels list
-wacli channels info --jid 123456789012345@newsletter
-wacli channels join --invite https://whatsapp.com/channel/AbCdEfGhIjK
-wacli channels leave --jid 123456789012345@newsletter
-wacli send text --to 123456789012345@newsletter --message "Hello channel"
-wacli send file --to 123456789012345@newsletter --file ./image.png --caption "Update"
+whatscli channels list
+whatscli channels info --jid 123456789012345@newsletter
+whatscli channels join --invite https://whatsapp.com/channel/AbCdEfGhIjK
+whatscli channels leave --jid 123456789012345@newsletter
+whatscli send text --to 123456789012345@newsletter --message "Hello channel"
+whatscli send file --to 123456789012345@newsletter --file ./image.png --caption "Update"
 ```

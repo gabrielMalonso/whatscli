@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/lock"
-	"github.com/openclaw/wacli/internal/store"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/wacli/internal/lock"
+	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/wa"
 )
 
 func cleanupAppFixture(t *testing.T, discarded bool) (*App, DraftCleanupRequest, string, []byte) {

@@ -1,17 +1,17 @@
 ---
 title: Browser CLI coverage
-description: "Coverage of a reference browser-based service-desk workflow, with WACLI equivalents and explicit limitations."
+description: "Coverage of a reference browser-based service-desk workflow, with WhatsCLI equivalents and explicit limitations."
 ---
 
 # Browser CLI coverage
 
-This is the coverage checklist for [Agent daily use](agent-daily-use.md), not a claim of identical behavior or complete WhatsApp history. The baseline is the service-desk `whatsapp_cli` command surface and WhatsApp Web operations manual reviewed on **2026-10-08** (`tools/cli/python/whatsapp_cli/__main__.py`, `tools/cli/docs/whatsapp-cli.md`, and `central/sistemas/whatsapp-web.md` in the separate central repository). No central configuration or customer data is required to use wacli.
+This is the coverage checklist for [Agent daily use](agent-daily-use.md), not a claim of identical behavior or complete WhatsApp history. The baseline is the service-desk `whatsapp_cli` command surface and WhatsApp Web operations manual reviewed on **2026-10-08** (`tools/cli/python/whatsapp_cli/__main__.py`, `tools/cli/docs/whatsapp-cli.md`, and `central/sistemas/whatsapp-web.md` in the separate central repository). No central configuration or customer data is required to use WhatsCLI.
 
-The wacli side includes the merged live owner status, explicit local history anchor and continuous cursor watcher. Examples describe the merged source; verify the installed binary and restart a managed older follow owner explicitly before relying on its new IPC capabilities.
+The whatscli side includes the merged live owner status, explicit local history anchor and continuous cursor watcher. Examples describe the merged source; verify the installed binary and restart a managed older follow owner explicitly before relying on its new IPC capabilities.
 
-**Available** means a documented wacli operation exists. **Different** means the task is supported with different state/evidence semantics. **Caller integration** belongs to the future companion application. **Missing** means this fork has no equivalent. **UI-only** means the browser mechanism is unnecessary in a headless workflow. These labels describe implementation coverage, not live acceptance of every operation.
+**Available** means a documented whatscli operation exists. **Different** means the task is supported with different state/evidence semantics. **Caller integration** belongs to the future companion application. **Missing** means this fork has no equivalent. **UI-only** means the browser mechanism is unnecessary in a headless workflow. These labels describe implementation coverage, not live acceptance of every operation.
 
-| Browser command(s) | Coverage | Wacli daily workflow and limits |
+| Browser command(s) | Coverage | WhatsCLI daily workflow and limits |
 | --- | --- | --- |
 | `status` | Different | [Account/health checks](agent-daily-use.md#1-bind-the-account-and-check-local-health): `auth status`, offline `doctor`, plus live `sync status` for local owner readiness/transport. Current authentication remains unknown; no current tab/header. |
 | `doctor` | Different | Offline [doctor](doctor.md) checks store/auth/FTS/locks and dated observations. Legacy `doctor --connect` requires a standalone writer and is not supported under `--agent`. No equivalent one-command browser UI/full send check-up; an authorized test uses the ordinary reviewed send workflow. |
@@ -20,13 +20,13 @@ The wacli side includes the merged live owner status, explicit local history anc
 | `filter` (`all`, `unread`, `groups`) | Different | Query all chats or use `--unread`; the caller can classify group JIDs by `@g.us`. No persistent UI filter or dedicated group filter is required. |
 | `filter` / list/scan with `favorites` | Missing | No documented WhatsApp favorite-chat filter. Pinned chats, starred messages and local contact tags have different meanings; do not substitute them silently. |
 | `open-phone`, `open-visible`, `open-unread`, `open-visible-index` | Different | Select a trusted phone or reviewed returned JID explicitly. There is no global selected chat or stable row index. A new target may have no local history; immutable sending requires the recipient identity facts specified by [outbound](outbound.md). |
-| `open-agenda` | Caller integration | Appointment ID → trusted recipient must come from the companion application. Wacli then reads/prepares with that explicit phone/JID. No appointment lookup is built in. |
+| `open-agenda` | Caller integration | Appointment ID → trusted recipient must come from the companion application. WhatsCLI then reads/prepares with that explicit phone/JID. No appointment lookup is built in. |
 | `inspect`, `current` | Available | `chats show`, `messages list/show/context`; compact/full detail and exact stored text are covered in [conversation reading](agent-daily-use.md#3-select-a-recipient-and-read-the-conversation). |
-| `brief` | Caller integration | Wacli supplies bounded conversation/identity data. The combined business/customer-memory decision packet must be assembled by the caller; no central memory backend is built in. |
+| `brief` | Caller integration | WhatsCLI supplies bounded conversation/identity data. The combined business/customer-memory decision packet must be assembled by the caller; no central memory backend is built in. |
 | `open-contact-panel`, `contact-phone` | Different | `contacts show/resolve` observes stored PN/LID facts without opening a panel. An unknown PN remains unknown; local resolution is not a fresh remote profile inspection. |
 | `paste-draft` | Available | [Prepare a draft](agent-daily-use.md#4-prepare-review-send-and-inspect) with `draft create --message-file PATH` or stdin (`-`), preserving UTF-8 and real newlines without browser clipboard handling. |
 | `template-draft` | Caller integration | The caller renders the approved business template; `draft create` freezes the resulting text. No template generator or appointment variables are built in. |
-| `clear-draft` | Different | `draft discard --if-revision` abandons a local wacli draft and retains evidence. It does not clear another linked device's UI composer or cancel a dispatched operation. |
+| `clear-draft` | Different | `draft discard --if-revision` abandons a local whatscli draft and retains evidence. It does not clear another linked device's UI composer or cancel a dispatched operation. |
 | `preflight` | Different | Review the exact full immutable draft/account/recipient/content/quote/file, then supply its revision/hash for dispatch. No header/DOM/composer preflight is needed; neither preview nor hash records approval. |
 | `send-draft`, `safe-reply` | Available | `draft create/show` → authorized `outbound send` → `outbound show`, with an exact revision/hash and retained key. No one-call `safe-reply` equivalent. ACK, echo, delivery and read remain separate observations. |
 | `confirmation-transaction` | Caller integration | Per-message idempotency/evidence exists. Appointment/patient/date/template binding, ordered multi-message completion, transaction receipt and handoff must be coordinated by the companion application. No atomic multi-message business transaction is built in. |
@@ -35,7 +35,7 @@ The wacli side includes the merged live owner status, explicit local history anc
 | `download-audio`, `download-attachment` | Available | `messages show` → `media status` → explicit-output read-only `media download` for the exact chat/message. File verification replaces browser download-event correlation. Expired/missing media can require explicit recovery. |
 | `transcribe-audio` | Different | Explicit download + file validation + `media transcribe --adapter`; no bundled/default speech engine. The caller supplies a protocol-compatible adapter and reviews its output. |
 | `mark-unread` | Available | [Handoff](agent-daily-use.md#6-finish-or-hand-off-deliberately): `chats mark-unread --chat JID`; marker is not a caller task record or an invented unread count. Inspect mutation evidence. |
-| `archive-current` | Different | `chats archive --chat JID`; caller reviews target, drafts/attempts and protected chats. Archive unpins; wacli does not enforce the browser's protected parking-chat policy. |
+| `archive-current` | Different | `chats archive --chat JID`; caller reviews target, drafts/attempts and protected chats. Archive unpins; whatscli does not enforce the browser's protected parking-chat policy. |
 | `park` | UI-only | No selected UI conversation. Finish the logical task, record pending work and preserve explicit recipient binding for the next task. |
 | `cleanup-tabs` | UI-only | No browser tabs/deep links. Do not replace cleanup with logout, session deletion or killing another process. |
 

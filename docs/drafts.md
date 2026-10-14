@@ -11,11 +11,11 @@ A draft write returning `store_locked` (exit 4) advises waiting for the current 
 Selection preserves the existing `--account`, `--store`, environment and default rules. The resolved store is fixed once before LOCK/IPC and appears as `account.store_ref` in agent JSON and draft write/show/list JSON. Create/update require exactly one locally persisted own PN identity; missing, ambiguous or unreadable public session identity returns exit 4, with no session creation or connection. Show/list/discard/cleanup use the frozen record even without a current session.
 
 ```bash
-wacli --account personal draft create --to +15550000002 --message 'literal text' --agent
-wacli --account personal draft show DRAFT_ID --revision REVISION_ID --agent --detail full
-wacli --account personal draft list --agent --limit 20
-wacli --account personal draft update DRAFT_ID --if-revision CURRENT_REVISION --to 15550000002@s.whatsapp.net --message 'complete replacement' --agent
-wacli --account personal draft discard DRAFT_ID --if-revision CURRENT_REVISION --agent
+whatscli --account personal draft create --to +15550000002 --message 'literal text' --agent
+whatscli --account personal draft show DRAFT_ID --revision REVISION_ID --agent --detail full
+whatscli --account personal draft list --agent --limit 20
+whatscli --account personal draft update DRAFT_ID --if-revision CURRENT_REVISION --to 15550000002@s.whatsapp.net --message 'complete replacement' --agent
+whatscli --account personal draft discard DRAFT_ID --if-revision CURRENT_REVISION --agent
 ```
 
 IDs are random lowercase 32-character hex strings. A draft's current pointer changes on update; every revision remains immutable and individually retrievable. Update supplies complete input, including recipient, rather than a patch. Both update and discard compare `--if-revision` at the writer; conflicts use exit 1. Discard marks the draft abandoned, keeps its current pointer and retains every revision/snapshot. It neither requires the current own identity nor deletes bytes. To inspect abandoned drafts, use `list --include-discarded`.
@@ -55,7 +55,7 @@ Agent output preserves contract v1 and `source=local`, unknown freshness/complet
 When long text already requires complete review, request full detail directly to avoid a second query:
 
 ```bash
-wacli --account personal draft create --to 15550000002@s.whatsapp.net --message-file ./long-text.txt --agent --detail full
+whatscli --account personal draft create --to 15550000002@s.whatsapp.net --message-file ./long-text.txt --agent --detail full
 ```
 
 For a single draft revision, `data.recovery` is the canonical complete guidance in agent output. When guidance is present, `meta.recovery` contains only `See data.recovery.`; neither field is emitted for untruncated text/contact revisions. Text/contact truncation guidance requests the exact full revision without document advice. Document guidance always requires separate byte inspection; compact also directs full recovery for the expected snapshot path and any truncated fields. Legacy JSON keeps complete guidance in `data.draft.recovery`, and human output keeps it in the displayed draft's `recovery`. List retains its separate summary-only guidance in `meta.recovery`.
@@ -63,7 +63,7 @@ For a single draft revision, `data.recovery` is the canonical complete guidance 
 A document or image revision reports digest, size and `verified_at_create`, describing only the creation-time read. Full additionally exposes `document.snapshot_path` or `image.snapshot_path`, derived from the **currently selected fixed store + validated revision ID**, at `draft-media/REVISION_ID.blob`. It never exposes the original import path or internal metadata. Inspect it explicitly with appropriate local tools:
 
 ```bash
-wacli --account personal draft show DRAFT_ID --revision REVISION_ID --agent --detail full
+whatscli --account personal draft show DRAFT_ID --revision REVISION_ID --agent --detail full
 # Use the returned document.snapshot_path for separate local byte inspection.
 ```
 
@@ -92,9 +92,9 @@ Image bytes remain retained after update/discard. Document cleanup reports image
 ## Explicit document byte cleanup
 
 ```bash
-wacli --account personal --agent --read-only draft cleanup preview DRAFT_ID --limit 20
-wacli --account personal --agent draft cleanup preview DRAFT_ID --cursor TOKEN --detail full
-wacli --account personal --agent draft cleanup apply DRAFT_ID --revision REVISION_ID --if-revision CURRENT_HEAD --expect-hash COMPLETE_PAYLOAD_SHA256
+whatscli --account personal --agent --read-only draft cleanup preview DRAFT_ID --limit 20
+whatscli --account personal --agent draft cleanup preview DRAFT_ID --cursor TOKEN --detail full
+whatscli --account personal --agent draft cleanup apply DRAFT_ID --revision REVISION_ID --if-revision CURRENT_HEAD --expect-hash COMPLETE_PAYLOAD_SHA256
 ```
 
 Preview is the dry-run. Apply selects exactly one revision, including a sole discarded head; there is no bulk, age, path, force, orphan or automatic cleanup mode. All three selection flags are required. `--read-only` / `WACLI_READONLY=1` reject apply before opening the archive, LOCK or socket. Both commands stay `source=local`; neither needs current session identity. Preview `data={draft_id,state,expected_head_revision_id,revisions,page_counts,has_more,next_cursor}` includes each revision's full hash, ordinal, kind, eligibility, outbound-reference count and creation-time document bytes/digest. Full adds only a derived expected `snapshot_path` for documents. Agent `meta.page` repeats page navigation; `--cursor` is agent-only. Legacy output is JSON (preview uses the same DTO, `--full` adds paths). Apply returns the same compact/full DTO: `{draft_id,revision_id,hash,effect,outcome,directory_sync,removed_bytes}`.

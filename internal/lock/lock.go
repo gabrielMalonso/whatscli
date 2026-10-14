@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openclaw/wacli/internal/fsutil"
+	"github.com/gabrielMalonso/wacli/internal/fsutil"
 )
 
 type Lock struct {
@@ -38,9 +38,9 @@ func Acquire(storeDir string) (*Lock, error) {
 		}
 		info := strings.TrimSpace(string(b))
 		if info != "" {
-			return nil, fmt.Errorf("store is locked (another wacli is running?): %w: %w (%s)", ErrLocked, err, info)
+			return nil, fmt.Errorf("store is locked (another whatscli is running?): %w: %w (%s)", ErrLocked, err, info)
 		}
-		return nil, fmt.Errorf("store is locked (another wacli is running?): %w: %w", ErrLocked, err)
+		return nil, fmt.Errorf("store is locked (another whatscli is running?): %w: %w", ErrLocked, err)
 	}
 
 	_ = f.Truncate(0)

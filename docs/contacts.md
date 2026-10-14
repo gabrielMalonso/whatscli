@@ -2,22 +2,22 @@
 
 Read when: finding synced contacts, importing macOS Contacts names, or managing local contact metadata.
 
-`wacli contacts` works with contact metadata stored locally. Aliases and tags are local to `wacli`; they do not edit WhatsApp contacts on the phone.
+`whatscli contacts` works with contact metadata stored locally. Aliases and tags are local to `whatscli`; they do not edit WhatsApp contacts on the phone.
 
 ## Commands
 
 ```bash
-wacli contacts list [--limit N]
-wacli contacts search <query> [--limit N]
-wacli contacts show --jid JID
-wacli contacts resolve <lid|phone|jid> [...]
-wacli contacts check <phone> [phone...]
-wacli contacts refresh
-wacli contacts import-system [--input FILE] [--dry-run] [--clear]
-wacli contacts alias set --jid JID --alias NAME
-wacli contacts alias rm --jid JID
-wacli contacts tags add --jid JID --tag TAG
-wacli contacts tags rm --jid JID --tag TAG
+whatscli contacts list [--limit N]
+whatscli contacts search <query> [--limit N]
+whatscli contacts show --jid JID
+whatscli contacts resolve <lid|phone|jid> [...]
+whatscli contacts check <phone> [phone...]
+whatscli contacts refresh
+whatscli contacts import-system [--input FILE] [--dry-run] [--clear]
+whatscli contacts alias set --jid JID --alias NAME
+whatscli contacts alias rm --jid JID
+whatscli contacts tags add --jid JID --tag TAG
+whatscli contacts tags rm --jid JID --tag TAG
 ```
 
 ## Local pages
@@ -25,9 +25,9 @@ wacli contacts tags rm --jid JID --tag TAG
 `contacts list` browses the same verified PN/LID view as search. Its table/legacy JSON default is 50 results. With `--agent`, both list and search default to 20, accept limits 1–200, and return `meta.page` with `returned`, `has_more` and `next_cursor`. Continue with the same command/store/query and `--cursor TOKEN`; page size and `--detail compact|full` may change. The cursor requires agent mode.
 
 ```bash
-wacli --store /path/to/archive --agent contacts list --limit 20
-wacli --store /path/to/archive --agent contacts search Alice --limit 20
-wacli --store /path/to/archive --agent contacts search Alice --cursor TOKEN --detail full
+whatscli --store /path/to/archive --agent contacts list --limit 20
+whatscli --store /path/to/archive --agent contacts search Alice --limit 20
+whatscli --store /path/to/archive --agent contacts search Alice --cursor TOKEN --detail full
 ```
 
 Each page merges identities before limiting and preserves matches on either row, including original names hidden by aliases and metadata whose counterpart contact row is absent. Names sort by their complete case-sensitive Go string value, falling back to the complete JID, then by JID. Compact text truncation does not change this order. Raw source rows are folded in original display-name/JID-fallback order with stored JID as an explicit tie-breaker; conflicting metadata on source rows with formerly undefined identical sort keys now has deterministic precedence.
@@ -48,9 +48,9 @@ The reader streams canonical identity groups and retains only the earliest `limi
 - Identity reads in `list`, `search`, `show`, `resolve`, and alias/tag target selection distinguish an unknown pair from a failed read. A missing session or public mapping table, a pre-LID device table with `jid` but no `lid`, and nullable/empty pair fields remain valid unknown observations. A valid own-device pair takes precedence over the public map even when an earlier device row has a nullable `jid` or `lid`; without an own pair, the public map still applies. Existing tables with incompatible public columns and actual SQL/read errors fail the command before output or metadata changes. Reads never upgrade the session schema. `resolve` keeps its optional display-name lookup's existing fallback when a name is unavailable; this does not turn an identity lookup failure into an unknown pair.
 
 - `refresh` imports contacts from the whatsmeow session store into `wacli.db`.
-- `import-system` imports display names from macOS Contacts by matching phone numbers against already-synced wacli contacts. Run `contacts refresh` first.
+- `import-system` imports display names from macOS Contacts by matching phone numbers against already-synced whatscli contacts. Run `contacts refresh` first.
 - `import-system --input FILE` reads a JSON array or newline-delimited JSON contacts file with `full_name` and `phones` fields instead of opening macOS Contacts.
-- Imported system names are local wacli metadata. They do not edit WhatsApp contacts or macOS Contacts.
+- Imported system names are local whatscli metadata. They do not edit WhatsApp contacts or macOS Contacts.
 - Display precedence is local alias, imported system name, then WhatsApp names.
 - Use `import-system --dry-run` before writing. Use `import-system --clear` to remove imported system names.
 - See [contacts import-system](contacts-import-system.md) for the full import workflow, JSON shape, file format, and verification steps.
@@ -59,12 +59,12 @@ The reader streams canonical identity groups and retains only the earliest `limi
 ## Examples
 
 ```bash
-wacli contacts search Alice
-wacli contacts show --jid 1234567890@s.whatsapp.net
-wacli contacts resolve 123456789@lid 987654321@lid --json
-wacli contacts check +43 664 12345678 --json
-wacli contacts refresh
-wacli contacts import-system --dry-run
-wacli contacts alias set --jid 1234567890@s.whatsapp.net --alias mom
-wacli contacts tags add --jid 1234567890@s.whatsapp.net --tag family
+whatscli contacts search Alice
+whatscli contacts show --jid 1234567890@s.whatsapp.net
+whatscli contacts resolve 123456789@lid 987654321@lid --json
+whatscli contacts check +43 664 12345678 --json
+whatscli contacts refresh
+whatscli contacts import-system --dry-run
+whatscli contacts alias set --jid 1234567890@s.whatsapp.net --alias mom
+whatscli contacts tags add --jid 1234567890@s.whatsapp.net --tag family
 ```

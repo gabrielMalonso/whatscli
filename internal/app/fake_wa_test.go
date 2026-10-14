@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openclaw/wacli/internal/fsutil"
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/wacli/internal/fsutil"
+	"github.com/gabrielMalonso/wacli/internal/wa"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/appstate"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
@@ -311,7 +311,7 @@ func (f *fakeWA) Connect(ctx context.Context, opts wa.ConnectOptions) error {
 		f.mu.Lock()
 		f.connected = false
 		f.mu.Unlock()
-		return fmt.Errorf("not authenticated; run `wacli auth`")
+		return fmt.Errorf("not authenticated; run `whatscli auth`")
 	}
 	if connectErr != nil {
 		f.mu.Lock()

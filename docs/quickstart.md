@@ -12,20 +12,24 @@ Already paired and working as an agent? Start with [Agent daily use](agent-daily
 ## 1. Install
 
 ```bash
-brew install openclaw/tap/wacli
-wacli --version
+git clone https://github.com/gabrielMalonso/wacli.git
+cd wacli
+pnpm install --frozen-lockfile
+pnpm build
+export PATH="$PWD/dist:$PATH"
+whatscli --version
 ```
 
-Other options (release archives, source builds, GCC 15 notes) are documented on [Install](install.md).
+Build prerequisites and distribution status are documented on [Install](install.md); the upstream Homebrew formula installs WACLI, not WhatsCLI.
 
-For this fork's agent commands, [verify the resolved executable and capabilities](install.md#verify-the-executable-for-agent-work). An upstream or older local binary may not support the current guide; rebuilding `dist/wacli` alone does not install it onto PATH or update a running sync owner.
+For this fork's agent commands, [verify the resolved executable and capabilities](install.md#verify-the-executable-for-agent-work). An upstream or older local binary may not support the current guide; rebuilding `dist/whatscli` alone does not install it onto PATH or update a running sync owner.
 
 ## 2. Pair as a linked device
 
 Choose the account explicitly. Bind `wacli_account` to the exact requested name reviewed in `data.accounts` (or an intentionally chosen new name for pairing). `example-account` below is illustrative, not a default. Keep the selected variables in the same Bash session for the later examples:
 
 ```bash
-wacli --read-only accounts list --json || exit "$?"
+whatscli --read-only accounts list --json || exit "$?"
 wacli_account='example-account' # Replace with the reviewed existing or intended new name.
 : "${wacli_account:?Choose an account name}"
 ```
@@ -35,25 +39,25 @@ Agents supply the binding from validated task input/account output without promp
 For a **new** account, create its isolated store and start pairing:
 
 ```bash
-wacli accounts add "$wacli_account"
+whatscli accounts add "$wacli_account"
 ```
 
 For an **existing** account that needs pairing, use this instead; skip pairing if it is already authenticated:
 
 ```bash
-wacli --account "$wacli_account" auth
+whatscli --account "$wacli_account" auth
 ```
 
 Both use the normal `auth` flow, which prints a QR code in your terminal. On your phone, open WhatsApp → **Linked devices** → **Link a device**, scan the QR, and approve. As soon as pairing succeeds, `auth` immediately starts the initial sync — keep it running until it idles out or press `Ctrl+C` once it has caught up.
 
 If the terminal QR does not scan, try `--qr-format text` and render that raw QR payload in another app, or pair via phone-number code with `--phone +15551234567`.
 
-> Refresh tokens last as long as the linked device stays linked on your phone. Unlinking from the phone (or `wacli auth logout`) ends the session and requires a fresh QR.
+> Refresh tokens last as long as the linked device stays linked on your phone. Unlinking from the phone (or `whatscli auth logout`) ends the session and requires a fresh QR.
 
 Verify:
 
 ```bash
-wacli --account "$wacli_account" --read-only auth status
+whatscli --account "$wacli_account" --read-only auth status
 ```
 
 ## 3. Keep the store warm
@@ -61,10 +65,10 @@ wacli --account "$wacli_account" --read-only auth status
 Use a separate Bash terminal for this foreground process. Select the same account there; the original terminal retains the variables needed for reading and later examples:
 
 ```bash
-wacli --read-only accounts list --json || exit "$?"
+whatscli --read-only accounts list --json || exit "$?"
 wacli_account='example-account' # Replace with the exact name selected in step 2.
 : "${wacli_account:?Select the intended account}"
-wacli --account "$wacli_account" sync --follow
+whatscli --account "$wacli_account" sync --follow
 ```
 
 `sync` never shows a QR; it requires a previously paired session and runs until you stop it. `--once` exits after one idle window; `--follow` reconnects on errors. Both honor `--max-messages` / `--max-db-size` (and the `WACLI_SYNC_MAX_*` env equivalents) so the local store stays bounded.
@@ -77,13 +81,13 @@ Tables are the default; `--full` keeps full IDs in tables and legacy `--json` re
 
 ```bash
 # Full-text search (FTS5 when the binary was built with -tags sqlite_fts5; LIKE otherwise)
-wacli --account "$wacli_account" --read-only --agent messages search "meeting"
+whatscli --account "$wacli_account" --read-only --agent messages search "meeting"
 
 # Search media-bearing messages
-wacli --account "$wacli_account" --read-only --agent messages search "meeting" --has-media
+whatscli --account "$wacli_account" --read-only --agent messages search "meeting" --has-media
 
 # Select a chat from data.chats[].jid (or a search result's chat_jid).
-wacli --account "$wacli_account" --read-only --agent chats list || exit "$?"
+whatscli --account "$wacli_account" --read-only --agent chats list || exit "$?"
 ```
 
 Bind `wacli_chat` to the exact reviewed `data.chats[].jid` or search result's `chat_jid`. The caller supplies this binding from that response; stop on empty/error output or an ambiguous selection.
@@ -92,7 +96,7 @@ Bind `wacli_chat` to the exact reviewed `data.chats[].jid` or search result's `c
 : "${wacli_chat:?Bind the reviewed chat JID from the preceding response}"
 
 # List messages from that chat, oldest first; select data.messages[].id.
-wacli --account "$wacli_account" --read-only --agent messages list --chat "$wacli_chat" --asc || exit "$?"
+whatscli --account "$wacli_account" --read-only --agent messages list --chat "$wacli_chat" --asc || exit "$?"
 ```
 
 Bind `wacli_message_id` to the exact reviewed `data.messages[].id` from that chat response. Keep both returned identifiers unchanged; the account/chat combination is part of the selection.
@@ -101,10 +105,10 @@ Bind `wacli_message_id` to the exact reviewed `data.messages[].id` from that cha
 : "${wacli_message_id:?Bind the reviewed message ID from that chat response}"
 
 # Show that exact message with full agent detail.
-wacli --account "$wacli_account" --read-only --agent messages show --chat "$wacli_chat" --id "$wacli_message_id" --detail full || exit "$?"
+whatscli --account "$wacli_account" --read-only --agent messages show --chat "$wacli_chat" --id "$wacli_message_id" --detail full || exit "$?"
 
 # Show context around a message
-wacli --account "$wacli_account" --read-only --agent messages context --chat "$wacli_chat" --id "$wacli_message_id" --before 5 --after 5
+whatscli --account "$wacli_account" --read-only --agent messages context --chat "$wacli_chat" --id "$wacli_message_id" --before 5 --after 5
 ```
 
 On supported lists, follow `meta.page.next_cursor` unchanged while keeping the same selection and filters. Local exhaustion, counts and dates do not establish complete/fresh remote history. Read [Messages](messages.md) for filters and the [agent contract](agent.md) for errors and compact/full recovery; `--full` does not select full agent detail.
@@ -116,25 +120,25 @@ The following are separate live actions: run only the ones you intend and are au
 ```bash
 # Choose the intended recipient: a phone, JID, or synced contact/group/chat name.
 : "${wacli_recipient:?Bind the explicitly authorized recipient from task input or reviewed resolution}"
-wacli --account "$wacli_account" send text --to "$wacli_recipient" --message "hello"
+whatscli --account "$wacli_account" send text --to "$wacli_recipient" --message "hello"
 
 # Send a quoted reply
-wacli --account "$wacli_account" send text --to "$wacli_chat" --message "replying" --reply-to "$wacli_message_id"
+whatscli --account "$wacli_account" send text --to "$wacli_chat" --message "replying" --reply-to "$wacli_message_id"
 
 # Send a file with a caption
-wacli --account "$wacli_account" send file --to "$wacli_recipient" --file ./pic.jpg --caption "hi"
+whatscli --account "$wacli_account" send file --to "$wacli_recipient" --file ./pic.jpg --caption "hi"
 
 # Send a 512x512 WebP sticker
-wacli --account "$wacli_account" send sticker --to "$wacli_recipient" --file ./sticker-512.webp
+whatscli --account "$wacli_account" send sticker --to "$wacli_recipient" --file ./sticker-512.webp
 
 # Send a native voice note (OGG/Opus)
-wacli --account "$wacli_account" send voice --to "$wacli_recipient" --file ./voice.ogg
+whatscli --account "$wacli_account" send voice --to "$wacli_recipient" --file ./voice.ogg
 
 # React (omit --reaction for the default thumbs-up; use --reaction "" to clear)
-wacli --account "$wacli_account" send react --to "$wacli_chat" --id "$wacli_message_id" --reaction "🎉"
+whatscli --account "$wacli_account" send react --to "$wacli_chat" --id "$wacli_message_id" --reaction "🎉"
 
 # Post a WhatsApp status broadcast
-wacli --account "$wacli_account" send status --message "available today" --background-color '#1f7a8c'
+whatscli --account "$wacli_account" send status --message "available today" --background-color '#1f7a8c'
 ```
 
 Recipient resolution and disambiguation (`--pick N`, ambiguous-name prompts), link-preview behavior, status broadcasts, and post-send waits are documented in [Send](send.md).
@@ -146,9 +150,9 @@ For agents preparing an exact revision for later review/dispatch, use [local dra
 `sync` only stores what WhatsApp Web pushes. To request older messages for a specific chat from your **primary device** (your phone), use:
 
 ```bash
-wacli --account "$wacli_account" --read-only history coverage --include-blocked
-wacli --account "$wacli_account" --read-only history fill --dry-run --limit 20
-wacli --account "$wacli_account" history backfill --chat "$wacli_chat" --requests 10 --count 50
+whatscli --account "$wacli_account" --read-only history coverage --include-blocked
+whatscli --account "$wacli_account" --read-only history fill --dry-run --limit 20
+whatscli --account "$wacli_account" history backfill --chat "$wacli_chat" --requests 10 --count 50
 ```
 
 The phone must be online for `backfill`. WhatsApp may not return full history. See [History](history.md) for coverage planning, limits, and patterns.
@@ -159,14 +163,14 @@ If you run more than one WhatsApp number, named accounts give each an isolated s
 
 ```bash
 # Add a second account and pair it immediately
-wacli accounts add work
+whatscli accounts add work
 
 # List all configured accounts
-wacli --read-only accounts list --json
+whatscli --read-only accounts list --json
 
 # Use a named account with any command
-wacli --account work sync --follow
-wacli --account work --read-only chats list
+whatscli --account work sync --follow
+whatscli --account work --read-only chats list
 ```
 
 Use `--no-auth` to create the account entry without pairing immediately. Two accounts can sync concurrently — their locks are independent. See [Accounts](accounts.md) for YAML config and migration from manual `--store` paths.
@@ -174,12 +178,12 @@ Use `--no-auth` to create the account entry without pairing immediately. Two acc
 ## 8. Diagnostics and safety
 
 ```bash
-wacli --account "$wacli_account" --read-only doctor
-wacli --account "$wacli_account" doctor --connect
+whatscli --account "$wacli_account" --read-only doctor
+whatscli --account "$wacli_account" doctor --connect
 
 # Read-only mode for agents / sandboxes
-wacli --account "$wacli_account" --read-only --agent messages search "invoice"
-WACLI_READONLY=1 wacli --account "$wacli_account" send text --to "$wacli_recipient" --message "hi"   # exits with a clear error
+whatscli --account "$wacli_account" --read-only --agent messages search "invoice"
+WACLI_READONLY=1 whatscli --account "$wacli_account" send text --to "$wacli_recipient" --message "hi"   # exits with a clear error
 ```
 
 `doctor` checks the store, schema, FTS5 availability, and (with `--connect`) live connectivity. See [Doctor](doctor.md).
@@ -191,15 +195,15 @@ Readonly rejects intentional WhatsApp mutations and archive writes; it does not 
 Choose the example for your shell; these optional commands write completion files:
 
 ```bash
-wacli completion bash >> ~/.bash_completion
+whatscli completion bash >> ~/.bash_completion
 ```
 
 ```zsh
-wacli completion zsh > "${fpath[1]}/_wacli"
+whatscli completion zsh > "${fpath[1]}/_whatscli"
 ```
 
 ```fish
-wacli completion fish > ~/.config/fish/completions/wacli.fish
+whatscli completion fish > ~/.config/fish/completions/whatscli.fish
 ```
 
 ## Where next

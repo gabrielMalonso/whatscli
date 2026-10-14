@@ -1,84 +1,61 @@
 ---
 title: Install
-description: "Install wacli via Homebrew tap, prebuilt release archives, or a local build with cgo."
+description: "Build WhatsCLI — WhatsApp for Agents from this fork with cgo and FTS5."
 ---
 
 # Install
 
-`wacli` ships as a single binary. Local builds need cgo (because of `go-sqlite3` with FTS5); release artifacts and the Homebrew tap take care of that for you.
-
-The Homebrew, release and `go install` URLs below are upstream distribution references. Do not assume they include this fork's agent additions. For the checkout's agent workflow, use a binary built from the intended fork and complete [executable verification](#verify-the-executable-for-agent-work).
+WhatsCLI ships as the `whatscli` executable. Build this fork to get its agent workflows; upstream WACLI packages do not include these additions.
 
 ## Homebrew (macOS, Linux)
 
-```bash
-brew install openclaw/tap/wacli
-wacli --version
-```
-
-If a Linux install from the tap reports `Binary was compiled with 'CGO_ENABLED=0'`, update the tap and reinstall the formula:
-
-```bash
-brew update
-brew reinstall openclaw/tap/wacli
-```
+A WhatsCLI Homebrew tap has not been configured. `brew install openclaw/tap/wacli` installs the original WACLI, not WhatsCLI.
 
 ## GitHub releases (raw binaries)
 
-Download the matching archive from the [latest release](https://github.com/openclaw/wacli/releases) and put `wacli` (or `wacli.exe` on Windows) on your `PATH`.
+WhatsCLI artifacts use `whatscli_<version>_<os>_<arch>` archive names, with `whatscli` (`whatscli.exe` on Windows), `LICENSE`, and `README.md` inside. Check this fork's [releases](https://github.com/gabrielMalonso/wacli/releases) for published WhatsCLI assets; older WACLI assets do not certify this rebrand or its capabilities. Publication and signing require separate setup under [Release](release.md).
 
 ## Build from source
 
-`wacli` requires Go 1.27.0 or newer and uses `go-sqlite3`, so source builds require cgo and a C toolchain:
+Install Go 1.27.0 or newer, a C compiler, Node.js 24 or newer, and the pnpm version pinned in `package.json`. The preferred Go toolchain is 1.27.1; cgo and `sqlite_fts5` are required for the normal build.
 
 - macOS: Xcode Command Line Tools.
 - Debian / Ubuntu: `sudo apt install build-essential`.
 - Fedora / RHEL: `sudo dnf groupinstall "Development Tools"`.
 
-Then:
+```bash
+git clone https://github.com/gabrielMalonso/wacli.git
+cd wacli
+pnpm install --frozen-lockfile
+pnpm build
+./dist/whatscli --version
+```
+
+Add the checkout's `dist/` directory to your `PATH`. The build also creates `dist/wacli` as a compatibility alias, and `pnpm wacli -- <args>` forwards to `pnpm whatscli -- <args>`.
+
+For a direct Go build:
 
 ```bash
 CGO_ENABLED=1 CGO_CFLAGS="-Wno-error=missing-braces" \
-  go install -tags sqlite_fts5 github.com/openclaw/wacli/cmd/wacli@latest
+  go build -tags sqlite_fts5 -o dist/whatscli ./cmd/whatscli
 ```
 
-For local development:
-
-Install Node.js 24 or newer and the pnpm version pinned in `package.json`.
-Corepack users can run `corepack pnpm install --frozen-lockfile`
-from the checkout to download and verify that pinned version.
-
-```bash
-git clone https://github.com/openclaw/wacli.git
-cd wacli
-make build
-make check
-./dist/wacli --version
-```
-
-The `sqlite_fts5` build tag is required for `messages search` to use the FTS5 index. Without it, search falls back to `LIKE`.
-
-GCC 15 has stricter brace-init warnings; the `-Wno-error=missing-braces` flag keeps the `go-sqlite3` build green there. macOS / clang and older GCC do not need it.
-
-The Makefile is a thin wrapper over the existing pnpm scripts. `make build`
-writes `./dist/wacli`; `make check` runs the complete local CI gate.
-
-Repository development, CI, and Docker builds select Go 1.27.1 for its compiler, runtime, cgo, and standard-library fixes. The `toolchain` directive in `go.mod` selects that build version without raising the Go 1.27.0 source minimum; normal Go toolchain auto-selection downloads it when needed.
+`make build` wraps the pnpm build; `make check` runs the complete local CI gate. After a WhatsCLI version is published, Go installation must use this fork's module and `cmd/whatscli`, not the upstream module.
 
 ## Verify the executable for agent work
 
 ```bash
-command -v wacli || exit "$?"
-wacli --version || exit "$?"
-wacli --help || exit "$?"
-wacli --read-only capabilities --agent || exit "$?"
+command -v whatscli || exit "$?"
+whatscli --version || exit "$?"
+whatscli --help || exit "$?"
+whatscli --read-only capabilities --agent || exit "$?"
 ```
 
 These checks do not select an account or connect to WhatsApp. Inspect the resolved path and actual capabilities, not just the release version: local builds with the same version string can contain different commands. The daily workflow needs `-a`/`--for-account`, agent support for `auth status`, `doctor`, `sync status`, `changes list/watch` and the intended task commands; `changes watch` must advertise `encoding=ndjson`.
 
 | Observation | Next step |
 | --- | --- |
-| `wacli` not found | Use the intended fork binary's explicit path, or add its directory to this shell's PATH during authorized setup. |
+| `whatscli` not found | Use the intended fork binary's explicit path, or add its directory to this shell's PATH during authorized setup. |
 | Unexpected executable path | Inspect shell aliases/functions and PATH order; use the reviewed executable consistently. |
 | Unknown `capabilities` command or `-a` flag; required capability absent | Treat the executable as incompatible with this guide. Use a current fork release or rebuild the intended checkout during authorized setup; do not downgrade to legacy sends. |
 | New CLI but an older managed follow owner | Coordinate its restart with its owner/supervisor before relying on new IPC features. Replacing a binary on disk does not update a running process. |
@@ -87,12 +64,12 @@ For an **authorized local build**, from the intended fork's checkout with the pr
 
 ```bash
 pnpm build || exit "$?"
-./dist/wacli --read-only capabilities --agent || exit "$?"
+./dist/whatscli --read-only capabilities --agent || exit "$?"
 # Optional Bash setup for this shell; rebuilding alone does not install onto PATH.
 export PATH="$PWD/dist:$PATH"
 hash -r
-command -v wacli || exit "$?"
-wacli --read-only capabilities --agent || exit "$?"
+command -v whatscli || exit "$?"
+whatscli --read-only capabilities --agent || exit "$?"
 ```
 
 Inspect any alias/function that still overrides the PATH entry, or invoke the reviewed executable by its explicit path. Use that same executable for the sync owner and task commands. Do not rebuild, replace binaries, restart shared processes, pair/relink or migrate an archive merely to make a readonly query succeed.
@@ -101,7 +78,7 @@ After executable verification, [Agent daily use](agent-daily-use.md) binds an ex
 
 ## Updating
 
-- **Homebrew tap**: `brew upgrade wacli` (or `brew reinstall openclaw/tap/wacli`).
+- **Homebrew tap**: unavailable for WhatsCLI until a fork-owned tap is configured.
 - **GitHub release archives**: download the new tarball / ZIP and replace the binary.
 - **Source builds**: `git pull && make build` (or `pnpm build`). Local builds use the version compiled into the source tree; release artifacts inject the tag during GoReleaser builds.
 
@@ -117,7 +94,7 @@ The local store format is forward-compatible across point releases; routine upgr
 ## Related pages
 
 - [Quickstart](quickstart.md) — pair, sync, and send your first message.
-- [Auth](auth.md) — `wacli auth`, `auth status`, `auth logout`.
+- [Auth](auth.md) — `whatscli auth`, `auth status`, `auth logout`.
 - [Sync](sync.md) — bootstrap and follow-mode sync, refresh flags.
 - [Doctor](doctor.md) — self-checks and connectivity probe.
 - [Release](release.md) — release workflow and artifact expectations.

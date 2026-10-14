@@ -1,45 +1,39 @@
-# wacli 🗃️ — WhatsApp from your terminal
+# WhatsCLI — WhatsApp for Agents
 
-![wacli banner](docs/assets/readme-banner.jpg)
+![WhatsCLI — WhatsApp for Agents](docs/assets/whatscli-banner.svg)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/openclaw/wacli/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/openclaw/wacli/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/openclaw/wacli?style=flat-square)](https://github.com/openclaw/wacli/releases/latest)
-[![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-blue?style=flat-square)](https://github.com/openclaw/wacli/releases/latest)
-[![License](https://img.shields.io/github/license/openclaw/wacli?style=flat-square)](LICENSE)
-[![Homebrew](https://img.shields.io/badge/Homebrew-openclaw%2Ftap-orange?style=flat-square)](https://github.com/openclaw/homebrew-tap)
-[![Docs](https://img.shields.io/badge/docs-wacli.sh-blue?style=flat-square)](https://wacli.sh)
+[![CI](https://img.shields.io/github/actions/workflow/status/gabrielMalonso/wacli/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/gabrielMalonso/wacli/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/gabrielMalonso/wacli?style=flat-square)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-WhatsCLI-blue?style=flat-square)](docs/index.md)
 
-`wacli` is a scriptable WhatsApp client for people and tools that work from the command line. It pairs as a linked device, mirrors messages into a local SQLite store, and supports search, sending, and chat management.
+WhatsCLI is a scriptable WhatsApp client for terminals, scripts, and coding agents, developed and maintained by [Gabriel Monteiro Alonso](https://github.com/gabrielMalonso). It builds on [WACLI](https://github.com/openclaw/wacli) with agent capability discovery, explicit account selection, immutable drafts, retained outbound attempts, and resumable local change streams. It pairs as a linked device, mirrors messages into a local SQLite store, and supports search, sending, and chat management.
 
-> `wacli` uses the WhatsApp Web protocol through [`whatsmeow`](https://github.com/tulir/whatsmeow). It is not affiliated with WhatsApp or Meta.
+> `whatscli` uses the WhatsApp Web protocol through [`whatsmeow`](https://github.com/tulir/whatsmeow). It is not affiliated with WhatsApp or Meta.
 
 ## Install
 
-Homebrew on macOS or Linux:
+Build this fork with Go 1.27.0 or newer, a C compiler, Node.js 24 or newer, and the pnpm version pinned in `package.json`:
 
 ```sh
-brew install openclaw/tap/wacli
+git clone https://github.com/gabrielMalonso/wacli.git
+cd wacli
+pnpm install --frozen-lockfile
+pnpm build
+./dist/whatscli --version
 ```
 
-Prebuilt archives for macOS, Linux, and Windows are available from [GitHub Releases](https://github.com/openclaw/wacli/releases/latest). Official macOS binaries require macOS 15 (Sequoia) or newer.
+Add the checkout's `dist/` directory to your `PATH` to use `whatscli`. Local builds also produce `dist/wacli` for existing scripts.
 
-To build from source, install Go 1.27.0 or newer and a C compiler, then run:
-
-```sh
-CGO_ENABLED=1 CGO_CFLAGS="-Wno-error=missing-braces" \
-  go install -tags sqlite_fts5 github.com/openclaw/wacli/cmd/wacli@latest
-```
-
-See the [installation guide](docs/install.md) for release archives, Docker, and platform-specific build requirements.
+This repository is currently hosted at `gabrielMalonso/wacli`; the product and primary command are WhatsCLI and `whatscli`. The upstream Homebrew formula and releases install WACLI, not this fork. WhatsCLI publication and signing are separate setup steps; see the [installation guide](docs/install.md) and [release notes](docs/release.md).
 
 ## Quick start
 
 Pair the CLI by scanning the terminal QR code from WhatsApp's **Linked devices** screen. `auth` performs the first sync after pairing.
 
 ```sh
-wacli auth
-wacli messages search "meeting"
-wacli send text --to +15551234567 --message "hello"
+whatscli auth
+whatscli messages search "meeting"
+whatscli send text --to +15551234567 --message "hello"
 ```
 
 Sending requires a recipient you are allowed to contact. Recipients can be phone numbers, WhatsApp JIDs, or synced contact, group, and chat names.
@@ -51,27 +45,27 @@ The [quickstart](docs/quickstart.md) covers phone-number pairing, named accounts
 Run a continuous sync to keep the local store current:
 
 ```sh
-wacli sync --follow
+whatscli sync --follow
 ```
 
-`wacli` keeps the WhatsApp session and its own searchable message index in separate SQLite databases. Search reads the local index, so it works without a live WhatsApp connection:
+`whatscli` keeps the WhatsApp session and its own searchable message index in separate SQLite databases. Search reads the local index, so it works without a live WhatsApp connection:
 
 ```sh
-wacli messages search "invoice" --has-media
-wacli --json messages list --limit 20
+whatscli messages search "invoice" --has-media
+whatscli --json messages list --limit 20
 ```
 
 WhatsApp Web provides history on a best-effort basis. Use [`history coverage`](docs/history.md) to inspect what is available locally before requesting older messages from the primary phone.
 
-## Use wacli from scripts
+## Use whatscli from scripts
 
 Human-readable tables are the default. Use `--json` for one-shot commands and `--events` for NDJSON lifecycle events from long-running commands. Progress and errors stay on stderr.
 
-Use `--read-only` or `WACLI_READONLY=1` to reject intentional WhatsApp mutations and archive writes by wacli:
+Use `--read-only` or `WACLI_READONLY=1` to reject intentional WhatsApp mutations and archive writes by whatscli:
 
 ```sh
-wacli --read-only --json messages search "invoice"
-WACLI_READONLY=1 wacli --json doctor
+whatscli --read-only --json messages search "invoice"
+WACLI_READONLY=1 whatscli --json doctor
 ```
 
 This policy still permits requested [message export files](docs/messages.md#export), [media download output](docs/media.md#download), and [transcription through an explicitly selected adapter](docs/media.md#explicit-local-transcription). Downloads may use the network; the adapter is not sandboxed and can make its own network requests or file writes. Normal readonly SQLite may create or update WAL/SHM bookkeeping and fails when required bookkeeping is unavailable; see [store readonly access](docs/store.md#local-reads-by-default) for the no-create and snapshot limits.
@@ -85,20 +79,20 @@ Start with [Agent daily use](docs/agent-daily-use.md) for the routine workflow: 
 The following are offline archive queries; they do not start sync or the stream. Discover static capabilities without an account, then list accounts with legacy JSON and choose a name explicitly for bounded queries:
 
 ```sh
-command -v wacli || exit "$?"
-wacli --read-only capabilities --agent || exit "$?"
-wacli --read-only accounts list --json || exit "$?"
+command -v whatscli || exit "$?"
+whatscli --read-only capabilities --agent || exit "$?"
+whatscli --read-only accounts list --json || exit "$?"
 # Bind to the exact requested name reviewed in data.accounts; this name is illustrative.
 wacli_account='example-account'
-wacli --account "$wacli_account" --read-only --agent auth status
-wacli --account "$wacli_account" --read-only --agent messages list --limit 20
+whatscli --account "$wacli_account" --read-only --agent auth status
+whatscli --account "$wacli_account" --read-only --agent messages list --limit 20
 ```
 
 Start with [account selection](docs/accounts.md) and the [agent contract](docs/agent.md) for supported commands, typed errors, compact/full recovery and pagination. Help/version remain text; `--json` and human tables remain available. Local results do not certify current connectivity, freshness or complete WhatsApp history. The read-only policy exceptions above still apply.
 
 For an authorized write, read [drafts](docs/drafts.md) to prepare/review an exact revision, then [outbound](docs/outbound.md) for explicit dispatch and retained evidence. A preview/hash records no approval; an uncertain result calls for inspection, not automatic replay. Use [media](docs/media.md) only when that task needs file observation, download or recovery.
 
-These checkout docs describe this fork's implementation. Installation and hosted-site links above remain upstream references; [verify the resolved executable and capabilities](docs/install.md#verify-the-executable-for-agent-work) before using the guide. A source build in `dist/` does not automatically update PATH or a running owner. [Fork maintenance](docs/fork-maintenance.md) defines the fork-only PR/push workflow and separate release authorization.
+These checkout docs describe WhatsCLI's implementation; [verify the resolved executable and capabilities](docs/install.md#verify-the-executable-for-agent-work) before using the guide. A source build in `dist/` does not automatically update PATH or a running owner. [Fork maintenance](docs/fork-maintenance.md) defines the fork-only PR/push workflow and separate release authorization.
 
 ## Commands
 
@@ -114,15 +108,19 @@ These checkout docs describe this fork's implementation. Installation and hosted
 | [`profile`](docs/profile.md), [`presence`](docs/presence.md) | Manage profile details and chat presence. |
 | [`store`](docs/store.md), [`doctor`](docs/doctor.md) | Inspect local storage and diagnose the setup. |
 
-The complete documentation is at [wacli.sh](https://wacli.sh), or run `wacli help <command>` for the installed command reference.
+The complete documentation is in [docs/](docs/index.md), or run `whatscli help <command>` for the installed command reference.
+
+## Compatibility
+
+The primary command is now `whatscli`; `pnpm wacli` and `dist/wacli` remain local aliases. This rebrand keeps the existing `WACLI_*` environment variables, account configuration, store directories, `wacli.db`, `session.db`, JSON contracts, cursors, IPC hashes, transcription protocol, and webhook signature header unchanged. No data migration or new pairing is required by the name change; normal executable/owner upgrade checks still apply.
 
 ## Configuration
 
 The default store is `~/.local/state/wacli` on Linux and `~/.wacli` elsewhere. Override it with `--store DIR` or `WACLI_STORE_DIR`; use named accounts when each WhatsApp identity needs its own session, database, and lock.
 
 ```sh
-wacli accounts add work
-wacli --account work sync --follow
+whatscli accounts add work
+whatscli --account work sync --follow
 ```
 
 See [accounts](docs/accounts.md) for store selection and [sync](docs/sync.md) for storage limits, media downloads, webhooks, and presence behavior.
@@ -139,12 +137,13 @@ pnpm format:check && pnpm lint && pnpm test
 
 ## Credits
 
-Heavily inspired by [`whatsapp-cli`](https://github.com/vicentereig/whatsapp-cli) by Vicente Reig.
+WhatsCLI is derived from [WACLI](https://github.com/openclaw/wacli), originally created by [Peter Steinberger (@steipete)](https://github.com/steipete) and maintained upstream by [@dinakars777](https://github.com/dinakars777), together with its contributors. The original Git history and MIT copyright notice are preserved.
 
-## Maintainers
+WACLI was heavily inspired by [`whatsapp-cli`](https://github.com/vicentereig/whatsapp-cli) by Vicente Reig. WhatsCLI uses [`whatsmeow`](https://github.com/tulir/whatsmeow) by Tulir Asokan for the WhatsApp Web protocol.
 
-- Created by [@steipete](https://github.com/steipete)
-- Currently maintained by [@dinakars777](https://github.com/dinakars777)
+## Maintainer
+
+[Gabriel Monteiro Alonso (@gabrielMalonso)](https://github.com/gabrielMalonso) maintains WhatsCLI and its additions.
 
 ## License
 

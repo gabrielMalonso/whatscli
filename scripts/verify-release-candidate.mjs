@@ -99,12 +99,12 @@ export function verifyCandidateDirectory(options) {
     throw new Error(`unsupported macOS verifier architecture ${hostArch}`);
   }
 
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wacli-release-verify-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "whatscli-release-verify-"));
   const binaries = new Map();
   try {
     for (const archiveName of archiveNames(version)) {
       const archive = path.join(candidateDir, archiveName);
-      const expectedBinary = archiveName.includes("windows") ? "wacli.exe" : "wacli";
+      const expectedBinary = archiveName.includes("windows") ? "whatscli.exe" : "whatscli";
       assertArchiveContents(archive, expectedBinary, { run });
       const destination = path.join(tempDir, archiveName.replace(/[^a-zA-Z0-9_.-]/g, "_"));
       extractArchive(archive, destination, run);
@@ -132,16 +132,16 @@ export function verifyCandidateDirectory(options) {
       binaries.set(archiveName, binary);
     }
 
-    const darwinAmd64 = binaries.get(`wacli_${version}_darwin_amd64.tar.gz`);
-    const darwinArm64 = binaries.get(`wacli_${version}_darwin_arm64.tar.gz`);
-    const darwinUniversal = binaries.get(`wacli_${version}_darwin_universal.tar.gz`);
+    const darwinAmd64 = binaries.get(`whatscli_${version}_darwin_amd64.tar.gz`);
+    const darwinArm64 = binaries.get(`whatscli_${version}_darwin_arm64.tar.gz`);
+    const darwinUniversal = binaries.get(`whatscli_${version}_darwin_universal.tar.gz`);
 
     assertArchitectures(darwinAmd64, ["x86_64"], run);
     assertArchitectures(darwinArm64, ["arm64"], run);
     assertArchitectures(darwinUniversal, ["arm64", "x86_64"], run);
 
-    const universalAmd64 = path.join(tempDir, "wacli-universal-amd64");
-    const universalArm64 = path.join(tempDir, "wacli-universal-arm64");
+    const universalAmd64 = path.join(tempDir, "whatscli-universal-amd64");
+    const universalArm64 = path.join(tempDir, "whatscli-universal-arm64");
     run("lipo", [darwinUniversal, "-thin", "x86_64", "-output", universalAmd64]);
     run("lipo", [darwinUniversal, "-thin", "arm64", "-output", universalArm64]);
     assertGoBuildInfo(universalAmd64, version, {

@@ -52,7 +52,7 @@ func DefaultStoreDir() string {
 	return DefaultBaseDir()
 }
 
-// DefaultBaseDir returns wacli's platform default state root without honoring
+// DefaultBaseDir returns whatscli's platform default state root without honoring
 // WACLI_STORE_DIR. Account config lives here so a temporary store override
 // does not hide the account registry.
 func DefaultBaseDir() string {
@@ -193,13 +193,13 @@ func ResolveAccountStore(path, name string) (string, Account, error) {
 	cfg, err := LoadAccountsConfig(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return "", Account{}, fmt.Errorf("account config not found at %s; run `wacli accounts add %s`", path, name)
+			return "", Account{}, fmt.Errorf("account config not found at %s; run `whatscli accounts add %s`", path, name)
 		}
 		return "", Account{}, err
 	}
 	entry, ok := cfg.Accounts[name]
 	if !ok {
-		return "", Account{}, fmt.Errorf("account %q is not configured; run `wacli accounts list`", name)
+		return "", Account{}, fmt.Errorf("account %q is not configured; run `whatscli accounts list`", name)
 	}
 	storeDir := resolveConfiguredStore(filepath.Dir(path), entry.Store)
 	return storeDir, Account{

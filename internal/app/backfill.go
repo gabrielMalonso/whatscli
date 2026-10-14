@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/store"
 	"go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
@@ -499,7 +499,7 @@ func (a *App) backfillHistory(ctx context.Context, opts BackfillOptions, runtime
 			}
 			if err != nil {
 				if err == sql.ErrNoRows {
-					return historyFailure(rec.AttemptID, rec.Phase, "no_local_anchor", rec.DispatchPossible, true, fmt.Errorf("no messages for %s in local DB; run `wacli sync` first", chatStr))
+					return historyFailure(rec.AttemptID, rec.Phase, "no_local_anchor", rec.DispatchPossible, true, fmt.Errorf("no messages for %s in local DB; run `whatscli sync` first", chatStr))
 				}
 				return historyFailure(rec.AttemptID, rec.Phase, "store_state", rec.DispatchPossible, true, err)
 			}

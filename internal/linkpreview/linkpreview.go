@@ -220,7 +220,7 @@ func fetchHTML(ctx context.Context, client *http.Client, rawURL string) (*html.N
 	if err != nil {
 		return nil, nil, err
 	}
-	req.Header.Set("User-Agent", "wacli")
+	req.Header.Set("User-Agent", "whatscli")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -251,7 +251,7 @@ func fetchThumbnail(ctx context.Context, client *http.Client, rawURL string) []b
 	if err != nil {
 		return nil
 	}
-	req.Header.Set("User-Agent", "wacli")
+	req.Header.Set("User-Agent", "whatscli")
 
 	resp, err := client.Do(req)
 	if err != nil {

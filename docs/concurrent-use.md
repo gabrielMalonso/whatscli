@@ -20,14 +20,14 @@ For sends whose uncertain outcome must remain inspectable, use [retained outboun
 
 ```bash
 # Owner, in its own terminal/process:
-wacli --account personal sync --follow
+whatscli --account personal sync --follow
 
 # Separate tasks, each using its own prepared D/R/H and key:
-wacli --account personal --timeout 30s outbound send DRAFT_A --revision REV_A --expect-hash HASH_A --key 'scheduled-2026-10-04' --agent
-wacli --account personal --timeout 30s outbound send DRAFT_B --revision REV_B --expect-hash HASH_B --key 'one-off-2026-10-04' --agent
+whatscli --account personal --timeout 30s outbound send DRAFT_A --revision REV_A --expect-hash HASH_A --key 'scheduled-2026-10-04' --agent
+whatscli --account personal --timeout 30s outbound send DRAFT_B --revision REV_B --expect-hash HASH_B --key 'one-off-2026-10-04' --agent
 
 # Local inspection can run while either send is waiting or executing:
-wacli --account personal outbound show --key 'scheduled-2026-10-04' --account-jid OWN_PN_JID --agent
+whatscli --account personal outbound show --key 'scheduled-2026-10-04' --account-jid OWN_PN_JID --agent
 ```
 
 These are separate invocations; placeholders refer to previously prepared drafts and the frozen own PN. Keep each command's stdout, stderr and exit status with that task. Inspect the returned operation ID, or its exact key plus frozen own PN, after uncertainty. Reusing the same retained binding returns its known result and IDs without another application send invocation, including when pending or uncertain. A new key can duplicate a remote message; archive loss or rollback can remove the retained protection. Do not automatically resend to resolve uncertainty. The SDK may retransmit the same message/ID during or after the original call, including after an uncertain result.

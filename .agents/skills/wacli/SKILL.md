@@ -1,18 +1,18 @@
 ---
 name: wacli
-description: "Use wacli for account selection, local WhatsApp archive queries, explicit draft/outbound/media actions, and repository or release work."
+description: "Use WhatsCLI (whatscli; legacy wacli alias) for account selection, local WhatsApp archive queries, explicit draft/outbound/media actions, and repository or release work."
 ---
 
-# Wacli
+# WhatsCLI
 
-Use the installed `wacli`, or `./dist/wacli` after building the current checkout. Check `--version` and command `--help` against the documentation for that build. Repository work follows [AGENTS.md](../../../AGENTS.md); see the [command map](../../../docs/overview.md) for task-specific pages.
+Use the installed `whatscli`, or `./dist/whatscli` after building the current checkout. Check `--version` and command `--help` against the documentation for that build. Repository work follows [AGENTS.md](../../../AGENTS.md); see the [command map](../../../docs/overview.md) for task-specific pages.
 
 For routine WhatsApp work, start with [Agent daily use](../../../docs/agent-daily-use.md), then fetch the full command references only as needed. Its [browser CLI coverage checklist](../../../docs/browser-cli-coverage.md) records task equivalents and remaining limitations.
 
 Discover this binary's static CLI/agent support before account selection:
 
 ```sh
-wacli --read-only capabilities --agent
+whatscli --read-only capabilities --agent
 ```
 
 Run unbound, without account/store selectors. Executing discovery rejects explicit selectors; textual help may ignore legacy `--account`/`--store` without resolving selection or accessing config/store, while `-a`/`--for-account` remains refused for discovery help. Discovery opens no config/store/session and reports `account_availability="unknown"`; static requirements and `read_only` policy are not evidence of readiness, authorization or zero external effects. Check the contract version and requested command's `agent_mode`; refuse unknown/unsupported modes rather than falling back to a mutation. Use command help and the [discovery contract](../../../docs/agent.md#static-capability-discovery) for restrictions and limits.
@@ -22,7 +22,7 @@ Run unbound, without account/store selectors. Executing discovery rejects explic
 Discover existing account names and resolved stores with legacy JSON; `accounts` is outside the agent contract:
 
 ```sh
-wacli --read-only accounts list --json
+whatscli --read-only accounts list --json
 ```
 
 Bind `wacli_account` to the exact listed name requested by the task, then keep it explicit on each operation. For example, if the requested/listed name is `example-account`:
@@ -30,10 +30,10 @@ Bind `wacli_account` to the exact listed name requested by the task, then keep i
 ```bash
 wacli_account='example-account' # Replace with the reviewed name from data.accounts.
 : "${wacli_account:?Select an existing account}"
-wacli -a "$wacli_account" --read-only --agent auth status
-wacli -a "$wacli_account" --read-only --agent doctor
-wacli -a "$wacli_account" --read-only --agent messages list --limit 20
-wacli -a "$wacli_account" --read-only --agent messages search 'query' --sort time
+whatscli -a "$wacli_account" --read-only --agent auth status
+whatscli -a "$wacli_account" --read-only --agent doctor
+whatscli -a "$wacli_account" --read-only --agent messages list --limit 20
+whatscli -a "$wacli_account" --read-only --agent messages search 'query' --sort time
 ```
 
 `-a NAME` / `--for-account NAME` requires the exact existing name, overrides env/default and fixes the resolved selection for this invocation. A different/empty `--account`, a different binding or any `--store` is refused before command effects, even with help/version; equal repetitions are allowed. Selection/config errors exit 4 in agent mode; invalid names/conflicts exit 2. Inspect and correct the selection explicitly, without fallback or pairing. Global `accounts` calls run without binding. Legacy `--account` keeps its previous selection behavior; selecting either way grants no mutation authorization.
@@ -46,7 +46,7 @@ For a manual archive, use an explicit `--store DIR` instead of named selection; 
 - Legacy `--json` remains useful for accounts and commands outside that contract. Auth/sync lifecycle events use `--events` on stderr; do not combine it with `--agent`. Help/version remain text. An `unsupported_command` refusal is not permission to switch modes and execute a mutation.
 - Compact is the default. Follow `meta.page.next_cursor` unchanged with the same selection/filters/order on supported lists. Local exhaustion does not certify remote completeness or freshness. For truncated messages, inspect the returned exact `chat_jid` and `id` using `messages show --agent --detail full`; `--full` controls tables, not agent detail. See the [quickstart](../../../docs/quickstart.md) for complete selection examples.
 - For durable local change consumption, use `changes list --agent` or continuous `changes watch --agent --timeout 0` with explicit account/store selection. Watch reads the existing local file without starting sync or requiring an owner; first empty frame is emitted, unchanged empty polls are silent, and `has_more=false` keeps waiting. Save `meta.page.next_cursor` only after processing each complete frame/page, including the first empty/final page; discard partial JSON and resume the previous processed cursor on cancellation/output failure (exit 1). Consumption can replay retained event IDs and has no automatic acknowledgement/checkpoint or exactly-once processing. Resume unchanged after restart. Repeated pages keep event IDs; no-op message replays add nothing. The reference log starts at schema 33, has no automatic retention, and does not certify WhatsApp completeness, receipt delivery or continuity across every restore. See [changes](../../../docs/changes.md) for coverage and cursor failures.
-- For live readiness, use `wacli -a "$wacli_account" --read-only --agent sync status`: it queries only the existing follow owner IPC and opens no database/session/second connection. `data.owner_ready=true` means full local initialization finished without terminal cleanup; `transport_connected` separately observes the socket. `operations` reports admission of an explicitly authorized attempt, with typed reasons: only draft/outbound can be admitted after migration/history/lifetime prerequisites while metadata bootstrap continues. Chat-state retains execution-time collection/identity guards. `local_read` has `owner_not_required` and archive `availability=not_checked`, even without an owner. IPC v3 refuses older owners without automatic restart. App-state debt, WACLI timing stages and dated owner-run observations do not certify completeness. Current authenticated readiness remains a pinned SDK gap (`authenticated=unknown`, `ready=false`, `readiness_reason=current_authentication_unsupported`); do not infer authentication/delivery from admission or an old ACK, and do not treat exit 0 as readiness. Windows IPC is explicitly unsupported; see [live readiness](../../../docs/sync.md#live-owner-readiness).
+- For live readiness, use `whatscli -a "$wacli_account" --read-only --agent sync status`: it queries only the existing follow owner IPC and opens no database/session/second connection. `data.owner_ready=true` means full local initialization finished without terminal cleanup; `transport_connected` separately observes the socket. `operations` reports admission of an explicitly authorized attempt, with typed reasons: only draft/outbound can be admitted after migration/history/lifetime prerequisites while metadata bootstrap continues. Chat-state retains execution-time collection/identity guards. `local_read` has `owner_not_required` and archive `availability=not_checked`, even without an owner. IPC v3 refuses older owners without automatic restart. App-state debt, WhatsCLI timing stages and dated owner-run observations do not certify completeness. Current authenticated readiness remains a pinned SDK gap (`authenticated=unknown`, `ready=false`, `readiness_reason=current_authentication_unsupported`); do not infer authentication/delivery from admission or an old ACK, and do not treat exit 0 as readiness. Windows IPC is explicitly unsupported; see [live readiness](../../../docs/sync.md#live-owner-readiness).
 - Local auth, heartbeat, lock, row counts and `meta.source` do not prove current connectivity or complete history. Missing mappings remain unknown; never infer a phone number from a LID. Agent doctor can fail with exit 4 while legacy offline `doctor --json` returns a diagnostic report with exit 0 and `store_error`; inspect that field.
 - For explicitly authorized history recovery, `history backfill --chat JID --before-id REAL_LOCAL_ID --requests 1` targets one batch before a genuine persisted message in this account/chat. It validates the exact anchor/author and local verified scope before connection and after requesting output, preserves local read errors without remote identity lookup, and never retries another anchor/identity; old owners refuse the distinct kind. Keep `before_id`, `messages_added_before` and the attempt ID: retained evidence growth is the whole conversation, and partial/empty/no-progress replies never prove completeness. Read [history](../../../docs/history.md#explicit-recovery-anchor) before recovery.
 - On an uncertain write/send, retain exact IDs and inspect local state. Do not automatically replay, change an outbound key, drop a refused quote or fall back to a second writer. Follow operation-specific guidance.
@@ -69,4 +69,4 @@ Before any PR, run the exact [AGENTS.md](../../../AGENTS.md) gate on the final S
 pnpm format:check && pnpm lint && pnpm lint:deadcode && pnpm test && pnpm build && pnpm docs:site && git diff --check
 ```
 
-Update task-relevant docs and release notes for user-facing changes while honoring active reservations. For this fork, read [fork maintenance](../../../docs/fork-maintenance.md): PR/push destination is `gabrielMalonso/wacli`, upstream is read/fetch only. Release/tag/deploy is a separately authorized task; read [release](../../../docs/release.md) and report completed versus failed jobs precisely. Existing upstream installation/site links do not authorize upstream writes.
+Update task-relevant docs and release notes for user-facing changes while honoring active reservations. For this fork, read [fork maintenance](../../../docs/fork-maintenance.md): PR/push destination is `gabrielMalonso/wacli`, upstream is read/fetch only. Release/tag/deploy is a separately authorized task; read [release](../../../docs/release.md) and report completed versus failed jobs precisely. Upstream is credited as the origin of WhatsCLI and remains read/fetch only.

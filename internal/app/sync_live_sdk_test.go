@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/wa"
+	"github.com/gabrielMalonso/wacli/internal/wa"
 	"go.mau.fi/whatsmeow"
 	waBinary "go.mau.fi/whatsmeow/binary"
 	wmStore "go.mau.fi/whatsmeow/store"

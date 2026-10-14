@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openclaw/wacli/internal/out"
+	"github.com/gabrielMalonso/wacli/internal/out"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
 // TestSyncSendsAvailablePresenceOnConnected ensures that when a sync session
-// connects, wacli broadcasts types.PresenceAvailable, and that it sends
+// connects, whatscli broadcasts types.PresenceAvailable, and that it sends
 // types.PresenceUnavailable again when the session ends so the phone still
 // receives push notifications.
 func TestSyncSendsAvailablePresenceOnConnected(t *testing.T) {
@@ -44,7 +44,7 @@ func TestSyncSendsAvailablePresenceOnConnected(t *testing.T) {
 }
 
 // TestSyncSendsAvailablePresenceOnPushNameSetting ensures that once the
-// server tells us our pushname, wacli sends another presence update. This
+// server tells us our pushname, whatscli sends another presence update. This
 // mirrors the behavior of go-whatsapp-web-multidevice and is important because
 // whatsmeow's SendPresence requires a pushname to be set. When the sync
 // session ends, PresenceUnavailable is sent as well.

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openclaw/wacli/internal/store"
+	"github.com/gabrielMalonso/wacli/internal/store"
 )
 
 type fakeSource struct {

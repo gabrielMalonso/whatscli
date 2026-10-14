@@ -12,6 +12,8 @@ permissions: {}
 
 jobs:
   release:
+    # Retained upstream publisher; WhatsCLI signing and a fork-owned tap need separate setup.
+    if: github.repository == 'openclaw/wacli'
     permissions:
       actions: read
       checks: read

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Build: atomically replace the local `wacli` compatibility binary so rebuilds and pnpm commands work while a legacy sync owner is running. Update the documentation social card to WhatsCLI.
+
 - Security: build with Go 1.27.2 to address reachable standard-library vulnerabilities reported by the CI govulncheck gate. Align development, CI, release verification and the pinned Docker builder while retaining the Go 1.27.0 source minimum and the existing vulnerability checks.
 - Security checks: attribute each govulncheck finding to its vulnerable trace frame rather than its callers. Preserve blocking for reachable standard-library and unclassified findings, and continue reporting third-party advisories without suppressions.
 

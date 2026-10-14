@@ -109,6 +109,9 @@ test("docs site build renders structured heading facts into the generated page",
   assert.match(home, /WhatsCLI — WhatsApp for Agents/);
   assert.match(home, /https:\/\/github\.com\/gabrielMalonso\/whatscli/);
   assert.doesNotMatch(home, /wacli\.sh|brew install openclaw/);
+  const socialCard = fs.readFileSync(path.join(root, "dist", "docs-site", "social-card.svg"), "utf8");
+  assert.match(socialCard, /<text\b[^>]*>WhatsCLI<\/text>/);
+  assert.doesNotMatch(socialCard, /<text\b[^>]*>wacli<\/text>/);
   const page = fs.readFileSync(path.join(root, "dist", "docs-site", "install.html"), "utf8");
   assert.match(page, /href="#at-t-bold">AT&amp;T bold<\/a>/);
   assert.match(page, /href="#img-onerror-alert-1-https-example-com">&lt;img onerror=alert\(1\)&gt;<\/a>/);

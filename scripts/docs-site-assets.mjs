@@ -275,7 +275,7 @@ export function socialCardSvg() {
     <rect width="128" height="128" rx="28" fill="#12231d"/>
     <path d="M64 22a42 42 0 0 0-36.08 63.38L22 106l21.38-5.63A42 42 0 1 0 64 22Zm24.6 59.55c-1.03 2.9-6.01 5.5-8.4 5.76-2.14.23-4.85.32-7.86-.48a43.5 43.5 0 0 1-7.12-2.67C52.68 78.72 44.53 66.03 43.88 65.23c-.57-.84-5-6.68-5-12.73 0-6.01 3.17-8.97 4.27-10.2 1.1-1.22 2.39-1.53 3.2-1.53.8 0 1.62 0 2.29.04.76.04 1.76-.29 2.73 2.06 1.03 2.56 3.47 8.59 3.76 9.26.32.65.52 1.39.1 2.23-.42.84-.65 1.35-1.3 2.1-.65.74-1.36 1.62-1.95 2.2-.65.65-1.34 1.3-.57 2.56.74 1.26 3.36 5.53 7.21 8.94 4.96 4.39 9.16 5.76 10.42 6.37 1.26.65 2 .52 2.71-.32.74-.88 3.13-3.65 3.97-4.9.84-1.26 1.68-1.03 2.86-.65 1.15.42 7.35 3.47 8.59 4.1 1.28.65 2.1.97 2.39 1.49.32.55.32 3.11-.71 6.01Z" fill="#25d366"/>
   </g>
-  <text x="114" y="315" fill="#ffffff" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="104" font-weight="700">wacli</text>
+  <text x="114" y="315" fill="#ffffff" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="104" font-weight="700">WhatsCLI</text>
   <text x="114" y="388" fill="#dcfce7" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="44" font-weight="600">WhatsApp for Agents</text>
   <text x="114" y="468" fill="#b7c8c0" font-family="JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace" font-size="28">$ whatscli --read-only capabilities --agent</text>
   <g fill="#9af1b7" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="28" font-weight="600">

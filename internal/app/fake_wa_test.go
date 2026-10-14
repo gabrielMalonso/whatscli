@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/fsutil"
-	"github.com/gabrielMalonso/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/appstate"
 	waProto "go.mau.fi/whatsmeow/binary/proto"

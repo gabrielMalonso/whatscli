@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/sqliteutil"
-	"github.com/gabrielMalonso/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/sqliteutil"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waAdv"
 	"go.mau.fi/whatsmeow/proto/waCommon"

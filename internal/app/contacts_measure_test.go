@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 	"github.com/mattn/go-sqlite3"
 )
 

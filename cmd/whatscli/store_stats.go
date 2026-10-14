@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gabrielMalonso/wacli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/out"
 	"github.com/spf13/cobra"
 )
 

@@ -16,8 +16,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gabrielMalonso/wacli/internal/fsutil"
-	"github.com/gabrielMalonso/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"google.golang.org/protobuf/proto"

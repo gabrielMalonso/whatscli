@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gabrielMalonso/wacli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/out"
 	"github.com/spf13/cobra"
 	"go.mau.fi/whatsmeow/types"
 )

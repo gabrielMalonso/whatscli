@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	appPkg "github.com/gabrielMalonso/wacli/internal/app"
+	appPkg "github.com/gabrielMalonso/whatscli/internal/app"
 )
 
 func TestAuthStatusPayloadIncludesLinkedJID(t *testing.T) {

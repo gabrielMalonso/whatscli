@@ -18,8 +18,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/linkpreview"
-	"github.com/gabrielMalonso/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/linkpreview"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow/types"
 )
 

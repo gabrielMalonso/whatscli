@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"github.com/gabrielMalonso/wacli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/app"
 	"net"
 	"os"
 	"os/exec"

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gabrielMalonso/wacli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
 )
 
 func TestDefaultStoreDir(t *testing.T) {

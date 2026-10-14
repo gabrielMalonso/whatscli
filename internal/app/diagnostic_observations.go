@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 	"go.mau.fi/whatsmeow/proto/waHistorySync"
 	"go.mau.fi/whatsmeow/types/events"
 )

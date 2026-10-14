@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/out"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waE2E"

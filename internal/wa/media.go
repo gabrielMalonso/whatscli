@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/socket"
 	"go.mau.fi/whatsmeow/util/cbcutil"

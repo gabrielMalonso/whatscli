@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/lock"
-	"github.com/gabrielMalonso/wacli/internal/out"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/lock"
+	"github.com/gabrielMalonso/whatscli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func outboundCLISeed(t *testing.T, dir string, n int) (*store.DB, store.OutboundOperation) {

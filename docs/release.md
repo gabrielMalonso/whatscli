@@ -2,7 +2,7 @@
 
 Read when: preparing WhatsCLI artifacts or reviewing inherited release infrastructure.
 
-WhatsCLI — WhatsApp for Agents is maintained in [gabrielMalonso/wacli](https://github.com/gabrielMalonso/wacli). The product rebrand does not rename the GitHub repository or publish a release automatically.
+WhatsCLI — WhatsApp for Agents is maintained in [gabrielMalonso/whatscli](https://github.com/gabrielMalonso/whatscli). The repository was renamed from `gabrielMalonso/wacli`; this rename does not publish a release automatically.
 
 ## Local builds
 

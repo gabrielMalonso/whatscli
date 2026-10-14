@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/app"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 // A distinct kind makes older owners reject this request explicitly.

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/gabrielMalonso/wacli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/app"
 )
 
 const agentChatStateKind = "agent_chat_state"

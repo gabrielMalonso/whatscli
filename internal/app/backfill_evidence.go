@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 const historyEvidenceWriteTimeout = 2 * time.Second

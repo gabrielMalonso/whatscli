@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/store/storedb"
+	"github.com/gabrielMalonso/whatscli/internal/store/storedb"
 )
 
 var ErrInvalidHistoryAnchor = errors.New("invalid explicit history anchor")

@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gabrielMalonso/wacli/internal/fsutil"
-	"github.com/gabrielMalonso/wacli/internal/sqliteutil"
-	"github.com/gabrielMalonso/wacli/internal/store/storedb"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/sqliteutil"
+	"github.com/gabrielMalonso/whatscli/internal/store/storedb"
 	_ "github.com/mattn/go-sqlite3"
 )
 

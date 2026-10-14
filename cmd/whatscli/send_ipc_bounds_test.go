@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/app"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 // Reads and replies stay in memory; no owner, socket, store or WA client is opened.

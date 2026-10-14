@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/out"
 )
 
 func TestSignalContextWithEventsKeepsStderrNDJSON(t *testing.T) {

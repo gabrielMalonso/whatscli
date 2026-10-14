@@ -69,4 +69,4 @@ Before any PR, run the exact [AGENTS.md](../../../AGENTS.md) gate on the final S
 pnpm format:check && pnpm lint && pnpm lint:deadcode && pnpm test && pnpm build && pnpm docs:site && git diff --check
 ```
 
-Update task-relevant docs and release notes for user-facing changes while honoring active reservations. For this fork, read [fork maintenance](../../../docs/fork-maintenance.md): PR/push destination is `gabrielMalonso/wacli`, upstream is read/fetch only. Release/tag/deploy is a separately authorized task; read [release](../../../docs/release.md) and report completed versus failed jobs precisely. Upstream is credited as the origin of WhatsCLI and remains read/fetch only.
+Update task-relevant docs and release notes for user-facing changes while honoring active reservations. For this fork, read [fork maintenance](../../../docs/fork-maintenance.md): PR/push destination is `gabrielMalonso/whatscli`, upstream is read/fetch only. Release/tag/deploy is a separately authorized task; read [release](../../../docs/release.md) and report completed versus failed jobs precisely. Upstream is credited as the origin of WhatsCLI and remains read/fetch only.

@@ -12,7 +12,7 @@ RUN CGO_ENABLED=1 CGO_CFLAGS="-Wno-error=missing-braces" GOOS=linux \
 FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 LABEL org.opencontainers.image.title="WhatsCLI" \
     org.opencontainers.image.description="WhatsApp for Agents" \
-    org.opencontainers.image.source="https://github.com/gabrielMalonso/wacli" \
+    org.opencontainers.image.source="https://github.com/gabrielMalonso/whatscli" \
     org.opencontainers.image.licenses="MIT"
 RUN apk add --no-cache ca-certificates ffmpeg tzdata \
     && adduser -D -u 10001 -h /home/wacli wacli \

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gabrielMalonso/wacli/internal/app"
-	"github.com/gabrielMalonso/wacli/internal/out"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 // Action failures never echo transport, SQLite, anchor, or argument text. The

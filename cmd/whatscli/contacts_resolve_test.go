@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/gabrielMalonso/wacli/internal/lock"
+	"github.com/gabrielMalonso/whatscli/internal/lock"
 	"os"
 	"path/filepath"
 	"strings"

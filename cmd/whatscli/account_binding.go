@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/gabrielMalonso/wacli/internal/config"
-	"github.com/gabrielMalonso/wacli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/config"
+	"github.com/gabrielMalonso/whatscli/internal/out"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )

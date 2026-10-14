@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/gabrielMalonso/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 )
 
 func mediaArtifactFixture(t *testing.T, name string) MediaLocation {

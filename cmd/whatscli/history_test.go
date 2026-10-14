@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/gabrielMalonso/wacli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/app"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func TestHistoryCoverageCommandListsReadyAndBlockedChats(t *testing.T) {

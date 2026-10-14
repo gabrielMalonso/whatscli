@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/lock"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/lock"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 const maintenanceOldChat = "old-dm@s.whatsapp.net"

@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func draftSnapshotFixture(t *testing.T) DraftSnapshotOptions {

@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/out"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 type outboundCheckpointsDTO struct {

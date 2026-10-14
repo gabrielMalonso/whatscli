@@ -15,7 +15,7 @@ import (
  "os"
  "path/filepath"
  "time"
- "github.com/gabrielMalonso/wacli/internal/store"
+ "github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func main() {

@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/sqliteutil"
-	"github.com/gabrielMalonso/wacli/internal/store/storedb"
+	"github.com/gabrielMalonso/whatscli/internal/sqliteutil"
+	"github.com/gabrielMalonso/whatscli/internal/store/storedb"
 )
 
 const changeReadBusyWait = 50 * time.Millisecond

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	appPkg "github.com/gabrielMalonso/wacli/internal/app"
-	"github.com/gabrielMalonso/wacli/internal/sqliteutil"
+	appPkg "github.com/gabrielMalonso/whatscli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/sqliteutil"
 	"go.mau.fi/whatsmeow/types"
 )
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/out"
 	"golang.org/x/term"
 )
 

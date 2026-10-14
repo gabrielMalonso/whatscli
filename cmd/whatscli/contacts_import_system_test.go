@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/fsutil"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/fsutil"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func TestReadSystemContactsPreservesTenMiBInputLimit(t *testing.T) {

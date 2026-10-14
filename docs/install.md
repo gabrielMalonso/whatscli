@@ -13,7 +13,7 @@ A WhatsCLI Homebrew tap has not been configured. `brew install openclaw/tap/wacl
 
 ## GitHub releases (raw binaries)
 
-WhatsCLI artifacts use `whatscli_<version>_<os>_<arch>` archive names, with `whatscli` (`whatscli.exe` on Windows), `LICENSE`, and `README.md` inside. Check this fork's [releases](https://github.com/gabrielMalonso/wacli/releases) for published WhatsCLI assets; older WACLI assets do not certify this rebrand or its capabilities. Publication and signing require separate setup under [Release](release.md).
+WhatsCLI artifacts use `whatscli_<version>_<os>_<arch>` archive names, with `whatscli` (`whatscli.exe` on Windows), `LICENSE`, and `README.md` inside. Check this fork's [releases](https://github.com/gabrielMalonso/whatscli/releases) for published WhatsCLI assets; older WACLI assets do not certify this rebrand or its capabilities. Publication and signing require separate setup under [Release](release.md).
 
 ## Build from source
 
@@ -24,8 +24,8 @@ Install Go 1.27.0 or newer, a C compiler, Node.js 24 or newer, and the pnpm vers
 - Fedora / RHEL: `sudo dnf groupinstall "Development Tools"`.
 
 ```bash
-git clone https://github.com/gabrielMalonso/wacli.git
-cd wacli
+git clone https://github.com/gabrielMalonso/whatscli.git
+cd whatscli
 pnpm install --frozen-lockfile
 pnpm build
 ./dist/whatscli --version

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gabrielMalonso/wacli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/app"
 )
 
 type agentMediaLocation struct {

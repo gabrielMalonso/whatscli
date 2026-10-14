@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gabrielMalonso/wacli/internal/sqliteutil"
+	"github.com/gabrielMalonso/whatscli/internal/sqliteutil"
 	"go.mau.fi/whatsmeow/types"
 )
 

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/lock"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/lock"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 const localReadPN = "15550000001@s.whatsapp.net"

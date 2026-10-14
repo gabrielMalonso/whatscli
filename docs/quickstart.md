@@ -12,8 +12,8 @@ Already paired and working as an agent? Start with [Agent daily use](agent-daily
 ## 1. Install
 
 ```bash
-git clone https://github.com/gabrielMalonso/wacli.git
-cd wacli
+git clone https://github.com/gabrielMalonso/whatscli.git
+cd whatscli
 pnpm install --frozen-lockfile
 pnpm build
 export PATH="$PWD/dist:$PATH"

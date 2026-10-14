@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/lock"
+	"github.com/gabrielMalonso/whatscli/internal/lock"
 )
 
 func cleanupFixtureRevision(t testing.TB, id, rid string, kind DraftKind, at time.Time, caption string) DraftRevision {

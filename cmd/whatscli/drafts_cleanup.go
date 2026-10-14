@@ -4,8 +4,8 @@ import (
 	"context"
 	"os"
 
-	"github.com/gabrielMalonso/wacli/internal/app"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 	"github.com/spf13/cobra"
 )
 

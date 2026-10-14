@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gabrielMalonso/wacli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/app"
 	"go.mau.fi/whatsmeow/types"
 )
 

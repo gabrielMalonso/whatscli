@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 // panicFirstWA wraps a fakeWA but panics on the first DownloadMediaToFile

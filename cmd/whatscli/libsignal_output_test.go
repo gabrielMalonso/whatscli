@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gabrielMalonso/wacli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/out"
 	signalLog "go.mau.fi/libsignal/logger"
 	"go.mau.fi/libsignal/protocol"
 	"go.mau.fi/libsignal/serialize"

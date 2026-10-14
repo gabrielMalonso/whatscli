@@ -2,7 +2,7 @@
 
 Read when: preparing a fork PR or reviewing an upstream update without publishing to upstream.
 
-`origin` is [gabrielMalonso/wacli](https://github.com/gabrielMalonso/wacli), the only push/PR destination in this workflow. `upstream` is [openclaw/wacli](https://github.com/openclaw/wacli), for read/fetch only; keep its push URL disabled. Verify `git remote -v` before pushing. WhatsCLI is the product name; the current repository remains `gabrielMalonso/wacli` until a separately authorized GitHub rename. Keep documentation and module URLs aligned with the actual repository. Upstream credits do not authorize upstream writes or deployment.
+`origin` is [gabrielMalonso/whatscli](https://github.com/gabrielMalonso/whatscli), the only push/PR destination in this workflow. `upstream` is [openclaw/wacli](https://github.com/openclaw/wacli), for read/fetch only; keep its push URL disabled. Verify `git remote -v` before pushing. WhatsCLI is hosted at `gabrielMalonso/whatscli`; GitHub redirects the previous `gabrielMalonso/wacli` address. Use the new URL for clones, the Go module and local remotes. Keep documentation and module URLs aligned with the actual repository. Upstream credits do not authorize upstream writes or deployment.
 
 Use short, focused branches from current fork `main`, a Conventional Commit, and an origin PR targeting `main`. Keep changes scoped, obtain maintainer review and pass the exact gate below. There is no automatic merge, release, deploy or tag creation. Dependencies, tooling and CI changes require explicit maintainer authorization.
 

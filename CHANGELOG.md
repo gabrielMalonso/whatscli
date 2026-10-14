@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Repository: move this fork to `gabrielMalonso/whatscli` and update its Go module, internal imports, documentation links and release metadata. Preserve the upstream fork relationship and existing runtime/store compatibility.
+
 - Rebrand this fork as WhatsCLI — WhatsApp for Agents, with the `whatscli` command, fork-owned source links and retained WACLI credits. Local builds retain a `wacli` alias; existing WACLI environment variables, account/store paths, databases and integration protocols remain unchanged.
 
 - Sync: expose operation admission, bounded WACLI stage durations/budgets, historical owner-run observations and retained app-state debt through fail-closed status IPC v3. Admit only typed draft/outbound requests after identity migration and history/lifetime setup while metadata bootstrap continues; preserve full `owner_ready`, strict `ready=false`/`authenticated=unknown`, local-read independence, collection guards, idempotency and uncertain outcomes. No schema, flags, SDK, dependencies, retries or timeout changes; fixture validation only.

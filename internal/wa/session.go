@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/gabrielMalonso/wacli/internal/sqliteutil"
+	"github.com/gabrielMalonso/whatscli/internal/sqliteutil"
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/store/sqlstore"

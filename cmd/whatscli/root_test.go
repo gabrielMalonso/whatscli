@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gabrielMalonso/wacli/internal/config"
+	"github.com/gabrielMalonso/whatscli/internal/config"
 )
 
 func captureRootStderr(t *testing.T, fn func()) string {
@@ -66,7 +66,7 @@ func TestRootBrandingAndCompletion(t *testing.T) {
 		{"help", []string{"--help"}, "WhatsCLI — WhatsApp for Agents"},
 		{"version", []string{"--version"}, "whatscli " + effectiveVersion()},
 		{"completion", []string{"completion", "bash"}, "__start_whatscli"},
-		{"docs", []string{"docs"}, "https://github.com/gabrielMalonso/wacli/tree/main/docs"},
+		{"docs", []string{"docs"}, "https://github.com/gabrielMalonso/whatscli/tree/main/docs"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			output := captureRootStdout(t, func() {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gabrielMalonso/wacli/internal/config"
+	"github.com/gabrielMalonso/whatscli/internal/config"
 )
 
 func TestAccountsAddNoAuthCreatesConfig(t *testing.T) {

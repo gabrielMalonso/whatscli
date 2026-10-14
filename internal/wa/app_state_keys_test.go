@@ -18,8 +18,8 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/gabrielMalonso/wacli/internal/sqliteutil"
-	appStore "github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/sqliteutil"
+	appStore "github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func newPairedSessionStore(t *testing.T) string {

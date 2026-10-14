@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/lock"
+	"github.com/gabrielMalonso/whatscli/internal/lock"
 	"github.com/spf13/cobra"
 )
 

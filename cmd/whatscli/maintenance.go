@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/gabrielMalonso/wacli/internal/app"
-	"github.com/gabrielMalonso/wacli/internal/lock"
+	"github.com/gabrielMalonso/whatscli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/lock"
 )
 
 // Maintenance previews only read the archive; execution keeps the writer lock

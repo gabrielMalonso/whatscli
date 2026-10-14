@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gabrielMalonso/wacli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/out"
 )
 
 func signalContextWithEvents(events *out.EventWriter) (context.Context, context.CancelFunc) {

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/out"
-	"github.com/gabrielMalonso/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/out"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"github.com/spf13/cobra"
 	"go.mau.fi/whatsmeow/types"
 )

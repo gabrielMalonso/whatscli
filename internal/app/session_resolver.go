@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gabrielMalonso/wacli/internal/sqliteutil"
-	"github.com/gabrielMalonso/wacli/internal/wa"
+	"github.com/gabrielMalonso/whatscli/internal/sqliteutil"
+	"github.com/gabrielMalonso/whatscli/internal/wa"
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow/types"
 )

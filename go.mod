@@ -1,4 +1,4 @@
-module github.com/gabrielMalonso/wacli
+module github.com/gabrielMalonso/whatscli
 
 go 1.27.0
 

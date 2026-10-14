@@ -2,8 +2,8 @@
 
 ![WhatsCLI — WhatsApp for Agents](docs/assets/whatscli-banner.svg)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/gabrielMalonso/wacli/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/gabrielMalonso/wacli/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/gabrielMalonso/wacli?style=flat-square)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/gabrielMalonso/whatscli/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/gabrielMalonso/whatscli/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/gabrielMalonso/whatscli?style=flat-square)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-WhatsCLI-blue?style=flat-square)](docs/index.md)
 
 WhatsCLI is a scriptable WhatsApp client for terminals, scripts, and coding agents, developed and maintained by [Gabriel Monteiro Alonso](https://github.com/gabrielMalonso). It builds on [WACLI](https://github.com/openclaw/wacli) with agent capability discovery, explicit account selection, immutable drafts, retained outbound attempts, and resumable local change streams. It pairs as a linked device, mirrors messages into a local SQLite store, and supports search, sending, and chat management.
@@ -15,8 +15,8 @@ WhatsCLI is a scriptable WhatsApp client for terminals, scripts, and coding agen
 Build this fork with Go 1.27.0 or newer, a C compiler, Node.js 24 or newer, and the pnpm version pinned in `package.json`:
 
 ```sh
-git clone https://github.com/gabrielMalonso/wacli.git
-cd wacli
+git clone https://github.com/gabrielMalonso/whatscli.git
+cd whatscli
 pnpm install --frozen-lockfile
 pnpm build
 ./dist/whatscli --version
@@ -24,7 +24,7 @@ pnpm build
 
 Add the checkout's `dist/` directory to your `PATH` to use `whatscli`. Local builds also produce `dist/wacli` for existing scripts.
 
-This repository is currently hosted at `gabrielMalonso/wacli`; the product and primary command are WhatsCLI and `whatscli`. The upstream Homebrew formula and releases install WACLI, not this fork. WhatsCLI publication and signing are separate setup steps; see the [installation guide](docs/install.md) and [release notes](docs/release.md).
+WhatsCLI is hosted at `gabrielMalonso/whatscli`, with `whatscli` as its primary command. The upstream Homebrew formula and releases install WACLI, not this fork. WhatsCLI publication and signing are separate setup steps; see the [installation guide](docs/install.md) and [release notes](docs/release.md).
 
 ## Quick start
 

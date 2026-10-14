@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gabrielMalonso/wacli/internal/store"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func writeMessagesList(dst io.Writer, msgs []store.Message, fullOutput bool) error {

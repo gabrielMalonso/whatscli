@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	appPkg "github.com/gabrielMalonso/wacli/internal/app"
-	"github.com/gabrielMalonso/wacli/internal/lock"
-	"github.com/gabrielMalonso/wacli/internal/store"
+	appPkg "github.com/gabrielMalonso/whatscli/internal/app"
+	"github.com/gabrielMalonso/whatscli/internal/lock"
+	"github.com/gabrielMalonso/whatscli/internal/store"
 )
 
 func TestParseLockOwnerPID(t *testing.T) {

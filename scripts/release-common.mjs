@@ -5,7 +5,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-export const RELEASE_REPOSITORY = "gabrielMalonso/wacli";
+export const RELEASE_REPOSITORY = "gabrielMalonso/whatscli";
 export const RELEASE_GO_VERSION = "go1.27.1";
 export const RELEASE_GO_TOOLCHAIN = "go1.27.1";
 export const RELEASE_GOVULNCHECK_VERSION = "v1.8.0";
@@ -363,7 +363,7 @@ export function assertGoBuildInfo(binary, version, options = {}) {
       `${path.basename(binary)} was built with ${buildInfo.GoVersion ?? "unknown"}, not ${expectedGoVersion}`,
     );
   }
-  if (buildInfo.Path !== "github.com/gabrielMalonso/wacli/cmd/whatscli") {
+  if (buildInfo.Path !== "github.com/gabrielMalonso/whatscli/cmd/whatscli") {
     throw new Error(`${path.basename(binary)} has the wrong Go main package`);
   }
   const settings = new Map();

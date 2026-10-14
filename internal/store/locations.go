@@ -5,7 +5,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/gabrielMalonso/wacli/internal/store/storedb"
+	"github.com/gabrielMalonso/whatscli/internal/store/storedb"
 )
 
 type MessageLocation struct {

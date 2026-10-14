@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Security: build with Go 1.27.2 to address reachable standard-library vulnerabilities reported by the CI govulncheck gate. Align development, CI, release verification and the pinned Docker builder while retaining the Go 1.27.0 source minimum and the existing vulnerability checks.
+- Security checks: attribute each govulncheck finding to its vulnerable trace frame rather than its callers. Preserve blocking for reachable standard-library and unclassified findings, and continue reporting third-party advisories without suppressions.
+
 - Repository: move this fork to `gabrielMalonso/whatscli` and update its Go module, internal imports, documentation links and release metadata. Preserve the upstream fork relationship and existing runtime/store compatibility.
 
 - Rebrand this fork as WhatsCLI — WhatsApp for Agents, with the `whatscli` command, fork-owned source links and retained WACLI credits. Local builds retain a `wacli` alias; existing WACLI environment variables, account/store paths, databases and integration protocols remain unchanged.

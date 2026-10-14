@@ -42,22 +42,22 @@ export function parseJsonStream(text) {
 export function classifyGovulncheckEvents(events) {
   const advisories = new Map();
   const findings = new Map();
+  const unclassifiedIds = new Set();
   for (const event of events) {
     if (event.osv) advisories.set(event.osv.id, event.osv);
     if (!event.finding) continue;
     const id = event.finding.osv;
     const moduleLevels = findings.get(id) ?? new Map();
-    const level = (event.finding.trace ?? []).some((frame) => frame.function)
-      ? "symbol"
-      : (event.finding.trace ?? []).some((frame) => frame.package)
-        ? "package"
-        : "module";
-    for (const frame of event.finding.trace ?? []) {
-      const module = frame.module || (frame.version?.startsWith("go") && frame.package ? "stdlib" : null);
-      if (!module) continue;
+    // govulncheck traces start at the vulnerable symbol; later frames are callers.
+    const frame = event.finding.trace?.[0];
+    const module = frame?.module || (frame?.version?.startsWith("go") && frame.package ? "stdlib" : null);
+    if (module) {
+      const level = frame.function ? "symbol" : frame.package ? "package" : "module";
       const levels = moduleLevels.get(module) ?? new Set();
       levels.add(level);
       moduleLevels.set(module, levels);
+    } else {
+      unclassifiedIds.add(id);
     }
     findings.set(id, moduleLevels);
   }
@@ -74,7 +74,7 @@ export function classifyGovulncheckEvents(events) {
     };
   });
   active.sort((left, right) => left.id.localeCompare(right.id));
-  const unclassified = active.filter((finding) => finding.modules.length === 0);
+  const unclassified = active.filter((finding) => unclassifiedIds.has(finding.id));
   const stdlib = active.filter((finding) => finding.moduleLevels.get("stdlib")?.has("symbol"));
   const stdlibNonReachable = active.filter(
     (finding) => finding.modules.includes("stdlib") && !finding.moduleLevels.get("stdlib")?.has("symbol"),

@@ -20,7 +20,7 @@ The primary executable is `whatscli`. Local builds additionally create `dist/wac
 - `checksums.txt` remains the checksum asset. The original MIT notice and WhatsCLI modification copyright travel with every archive.
 - GoReleaser build IDs and the existing release linker marker remain unchanged so internal verification and CI selectors stay compatible.
 - Source version stays in `cmd/whatscli/root.go`; release tooling reads it from that path.
-- The preferred build toolchain remains Go 1.27.1, with the Go 1.27.0 source minimum declared in `go.mod`.
+- The preferred build toolchain remains Go 1.27.2, with the Go 1.27.0 source minimum declared in `go.mod`.
 
 A credential-free macOS snapshot can be built with `make snapshot` on macOS. For Linux and Windows, use the split config with the matching C cross-compilers:
 

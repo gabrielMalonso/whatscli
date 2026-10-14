@@ -17,7 +17,7 @@ WhatsCLI artifacts use `whatscli_<version>_<os>_<arch>` archive names, with `wha
 
 ## Build from source
 
-Install Go 1.27.0 or newer, a C compiler, Node.js 24 or newer, and the pnpm version pinned in `package.json`. The preferred Go toolchain is 1.27.1; cgo and `sqlite_fts5` are required for the normal build.
+Install Go 1.27.0 or newer, a C compiler, Node.js 24 or newer, and the pnpm version pinned in `package.json`. The preferred Go toolchain is 1.27.2; cgo and `sqlite_fts5` are required for the normal build.
 
 - macOS: Xcode Command Line Tools.
 - Debian / Ubuntu: `sudo apt install build-essential`.

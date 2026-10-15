@@ -278,6 +278,9 @@ func (a *App) syncChatStateBeforeWrite(ctx context.Context, collection appstate.
 }
 
 func (a *App) replayRequiredAppState(ctx context.Context, collection appstate.WAPatchName, markerGeneration int64, tracker *appStatePersistenceTracker) error {
+	if handled, err := a.degradedAppStateReplay(ctx, collection, markerGeneration, tracker); handled {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(ctx, appStateRecoveryMaxWait)
 	defer cancel()
 	fetchErr, persistenceErr := a.fetchFullAppStateWithKeyWait(ctx, collection, tracker)
@@ -344,29 +347,12 @@ func (a *App) recoverMismatchingAppState(ctx context.Context, collection appstat
 }
 
 func (a *App) waitForPrimaryAppStateRecovery(ctx context.Context, collection appstate.WAPatchName, onRequested func(types.MessageID)) ([]any, error) {
-	var mu sync.Mutex
-	var captured []any
-	finished := false
-	// This capture is only for ordered persistence, never request attribution.
-	// SDK removal plus closed admission ends it before its reserved ticket drains.
-	handlerID := a.wa.AddEventHandler(func(evt any) {
-		mu.Lock()
-		defer mu.Unlock()
-		if finished {
-			return
-		}
-		for _, name := range appStateCollectionsForEvent(evt) {
-			if name == collection {
-				captured = append(captured, evt)
-				break
-			}
-		}
-	})
+	capture, err := a.newAppStateRecoveryCapture(collection, false)
+	if err != nil {
+		return nil, err
+	}
 	exchange, err := a.wa.RequestAppStateRecoveryObserved(ctx, string(collection), onRequested)
-	mu.Lock()
-	finished = true
-	mu.Unlock()
-	a.wa.RemoveEventHandler(handlerID)
+	captured := capture.releaseBuffered()
 	a.emitOrPrint("app_state_recovery_observed", map[string]any{
 		"requested_collection": string(collection), "ack_confirmed": exchange.ACKConfirmed,
 		"response_received": exchange.ResponseReceived, "completion": "unconfirmed",
@@ -391,6 +377,13 @@ func (a *App) fetchAndPersistAppState(ctx context.Context, collection appstate.W
 		defer releaseFetch()
 		eventsToPersist, fetchErr = a.wa.FetchAppStateEvents(ctx, string(collection), fullSync, false)
 	}()
+	if fullSync {
+		if fetchErr == nil {
+			a.setAppStateFullSyncResult(collection, false)
+		} else if errors.Is(fetchErr, appstate.ErrMismatchingLTHash) {
+			a.setAppStateFullSyncResult(collection, true)
+		}
+	}
 	result := make(chan error, 1)
 	frontier := a.appStatePersist.complete(ticket, func() {
 		result <- a.persistFetchedAppStateEvents(ctx, eventsToPersist, tracker)

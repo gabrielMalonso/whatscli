@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Chats: adapt upstream #493/#491 so `mark-read --receipts` atomically clears local unread metadata when no eligible incoming messages are stored. Send zero receipts, report `local_only: true`, preserve eligible arrivals, and retain rejection of nonempty incomplete history. Thanks @nicolasbiondic and @steipete.
+
+- Chats/sync: adapt upstream #493/#490 to use verified incremental reads when a known-broken full snapshot already has an SDK cursor, including startup after restart. Keep older debt and send intents, install background persistence before requests, retry failed flag writes, and fence failures observed during the read. No SDK/dependency change or cryptographic LTHash fix. Thanks @nicolasbiondic and @steipete.
+
+- App-state: retain bounded late recovery captures and persist later SDK events in dispatch order, stopping and draining on close. Adapt upstream #493/#489 while preserving this fork's unconfirmed-completion policy: public snapshots never retire older debt or authorize a mutation. Thanks @nicolasbiondic and @steipete.
+
 - Sync/auth: wait for confirmed login before metadata bootstrap while preserving transport cleanup on failed login waits, retain bounded key-delivery waits within the existing full-fetch budget, and renew durable app-state debt on later failures even after the automatic recovery budget is spent. Preserve generation fencing, other writers' intents and conservative ACK/completion handling; failed marker writes fence older checkpoints and dependent mutations until a later durable replay. Offline fixtures only; this does not establish or cure the cryptographic cause of LTHash failures.
 
 - Auth: recover a recorded revoked session with `auth logout` without connecting the invalid device. Preserve the existing account, history, drafts/outbound evidence and change checkpoints; retain revocation evidence until a confirmed new login. Keep normal remote logout, readonly and writer locks.

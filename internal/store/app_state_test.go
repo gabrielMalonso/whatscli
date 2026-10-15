@@ -6,6 +6,52 @@ import (
 	"testing"
 )
 
+func TestFullSyncBrokenReadOnlyLegacyCompatibility(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "wacli.db")
+	db, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.sql.Exec("DROP TABLE app_state_full_sync_broken"); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	ro, err := OpenReadOnly(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	collections, err := ro.AppStateFullSyncBrokenCollections()
+	if err != nil || len(collections) != 0 {
+		t.Fatalf("legacy readonly flag read = %v, %v", collections, err)
+	}
+	if exists, err := ro.tableExists("app_state_full_sync_broken"); err != nil || exists {
+		t.Fatal("readonly access created the flag table", err)
+	}
+	if err := ro.Close(); err != nil {
+		t.Fatal(err)
+	}
+	db, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := db.SetAppStateFullSyncBroken("regular_low", true); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SetAppStateFullSyncBroken("regular_high", true); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SetAppStateFullSyncBroken("regular_low", false); err != nil {
+		t.Fatal(err)
+	}
+	collections, err = db.AppStateFullSyncBrokenCollections()
+	if err != nil || len(collections) != 1 || collections[0] != "regular_high" {
+		t.Fatalf("collection flags = %v, %v", collections, err)
+	}
+}
+
 func TestOpenCreatesAppStateRecoveryIntents(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "wacli.db")
 	raw, err := sql.Open("sqlite3", path)

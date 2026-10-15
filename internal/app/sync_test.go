@@ -2386,8 +2386,8 @@ func TestArchiveChatSnapshotPersistsWithoutAuthorizingMutation(t *testing.T) {
 	if archiveCalls != 0 {
 		t.Fatalf("archive calls = %d, want 0 after unconfirmed recovery", archiveCalls)
 	}
-	if handlers != 0 {
-		t.Fatalf("event handlers after primary recovery = %d, want 0", handlers)
+	if handlers != 1 {
+		t.Fatalf("event handlers after primary recovery = %d, want 1 late capture", handlers)
 	}
 	stored, err := a.db.GetChat(remote.String())
 	if err != nil {
@@ -2424,8 +2424,8 @@ func TestArchiveChatKeepsRecoveryIntentWhenPrimaryRecoveryRequestFails(t *testin
 	if archiveCalls != 0 {
 		t.Fatalf("archive calls = %d, want 0 after recovery request failure", archiveCalls)
 	}
-	if handlers != 0 {
-		t.Fatalf("event handlers after recovery request failure = %d, want 0", handlers)
+	if handlers != 1 {
+		t.Fatalf("event handlers after recovery request failure = %d, want 1 late capture", handlers)
 	}
 	required, markerErr := a.db.AppStateRecoveryRequired(string(appstate.WAPatchRegularLow))
 	if markerErr != nil {
@@ -2460,8 +2460,8 @@ func TestArchiveChatBoundsPrimaryRecoveryWait(t *testing.T) {
 	if archiveCalls != 0 {
 		t.Fatalf("archive calls = %d, want 0 after recovery timeout", archiveCalls)
 	}
-	if handlers != 0 {
-		t.Fatalf("event handlers after recovery timeout = %d, want 0", handlers)
+	if handlers != 1 {
+		t.Fatalf("event handlers after recovery timeout = %d, want 1 late capture", handlers)
 	}
 	required, markerErr := a.db.AppStateRecoveryRequired(string(appstate.WAPatchRegularLow))
 	if markerErr != nil {

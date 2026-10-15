@@ -14,6 +14,7 @@ import (
 	"github.com/gabrielMalonso/whatscli/internal/store"
 	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/appstate"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -93,6 +94,7 @@ type WAClient interface {
 	DownloadHistorySync(ctx context.Context, notif *waE2E.HistorySyncNotification) (*waHistorySync.HistorySync, error)
 	DeleteHistorySyncMedia(ctx context.Context, notif *waE2E.HistorySyncNotification) error
 	RequestHistorySyncOnDemand(ctx context.Context, lastKnown types.MessageInfo, count int) (types.MessageID, error)
+	HasLocalAppState(ctx context.Context, name string) (bool, error)
 	FetchAppState(ctx context.Context, name string, fullSync, onlyIfNotSynced bool) error
 	FetchAppStateEvents(ctx context.Context, name string, fullSync, onlyIfNotSynced bool) ([]any, error)
 	RequestAppStateRecoveryObserved(ctx context.Context, name string, onAcknowledged func(types.MessageID)) (wa.AppStateRecoveryExchange, error)
@@ -124,37 +126,43 @@ type Options struct {
 }
 
 type App struct {
-	live                    syncLive
-	opts                    Options
-	waMu                    sync.Mutex
-	wa                      WAClient
-	sessionState            *sessionObservation
-	sessionHandler          uint32
-	outboundEvents          *outboundObserver
-	closed                  bool
-	closeOnce               sync.Once
-	connectGate             chan struct{}
-	sessionResolver         *readOnlySessionResolver
-	db                      *store.DB
-	historyMu               sync.Mutex
-	historyBackfillActive   bool
-	historyRuntime          *historyRuntime
-	historyObserver         *historyObserver
-	statusMu                sync.Mutex
-	status                  *syncStatus
-	chatStateSync           chan struct{}
-	appStatePersist         appStatePersistenceSequencer
-	appStateRecoveryWorkers sync.WaitGroup
-	appStateRecoveryMu      sync.Mutex
-	appStateRecoveryClosing bool
-	appStateFailureIntents  map[string]appStateFailureIntent // guarded by appStateRecoveryMu
-	appStateReplayOnClose   bool                             // guarded by waMu; callbacks need not drain at Disconnect
-	appStateRecoveryOnClose *appStateRecoveryRun             // guarded by waMu; closing coverage belongs to the last sync run
-	appStateUnobserved      bool                             // guarded by waMu; replay cannot retire coverage debt
-	manualFetchMu           sync.Mutex
-	manualFetches           map[string]int
-	heartbeatLast           atomic.Int64
-	groupInfo               groupInfoCache
+	live                      syncLive
+	opts                      Options
+	waMu                      sync.Mutex
+	wa                        WAClient
+	sessionState              *sessionObservation
+	sessionHandler            uint32
+	outboundEvents            *outboundObserver
+	closed                    bool
+	closeOnce                 sync.Once
+	connectGate               chan struct{}
+	sessionResolver           *readOnlySessionResolver
+	db                        *store.DB
+	historyMu                 sync.Mutex
+	historyBackfillActive     bool
+	historyRuntime            *historyRuntime
+	historyObserver           *historyObserver
+	statusMu                  sync.Mutex
+	status                    *syncStatus
+	chatStateSync             chan struct{}
+	appStatePersist           appStatePersistenceSequencer
+	appStateRecoveryWorkers   sync.WaitGroup
+	appStateRecoveryMu        sync.Mutex
+	appStateRecoveryClosing   bool
+	appStateFailureIntents    map[string]appStateFailureIntent                  // guarded by appStateRecoveryMu
+	appStateReplayOnClose     bool                                              // guarded by waMu; callbacks need not drain at Disconnect
+	appStateRecoveryOnClose   *appStateRecoveryRun                              // guarded by waMu; closing coverage belongs to the last sync run
+	appStateUnobserved        bool                                              // guarded by waMu; replay cannot retire coverage debt
+	lateRecoveries            map[appstate.WAPatchName]*appStateRecoveryCapture // guarded by appStateRecoveryMu
+	lateRecoveryWorkers       sync.WaitGroup
+	manualFetchMu             sync.Mutex
+	manualFetches             map[string]int
+	appStateDegradedMu        sync.Mutex
+	appStateFullSyncLoaded    bool
+	appStateFullSyncBroken    map[string]bool
+	appStateRecoveryRequested map[string]time.Time
+	heartbeatLast             atomic.Int64
+	groupInfo                 groupInfoCache
 }
 
 func New(opts Options) (*App, error) {
@@ -232,6 +240,9 @@ func (a *App) Close() {
 func (a *App) close() {
 	a.appStateRecoveryMu.Lock()
 	a.appStateRecoveryClosing = true
+	for _, capture := range a.lateRecoveries {
+		capture.cancel()
+	}
 	a.appStateRecoveryMu.Unlock()
 	a.waMu.Lock()
 	a.closed = true
@@ -259,6 +270,7 @@ func (a *App) close() {
 	// A completed command frontier may hand later ready tasks to a background
 	// drainer. Keep SQLite open until that drainer has finished every write.
 	a.appStateRecoveryWorkers.Wait()
+	a.lateRecoveryWorkers.Wait()
 	_ = a.appStatePersist.waitIdle(context.Background())
 	if sessionResolver != nil {
 		_ = sessionResolver.Close()

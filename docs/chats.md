@@ -67,7 +67,9 @@ Use `whatscli chats mark-read --chat CHAT --receipts` to send receipts for store
 
 Receipt mode does not wait for app-state recovery, so it can run while the primary phone cannot provide an app-state snapshot. It works directly or through a same-store `sync --follow` process. Restart older sync processes after upgrading: the separate receipt request is rejected by an older daemon before it changes the chat.
 
-Each call handles at most 100 messages, starting with the oldest messages in the current unread selection. Repeat the command for larger counts; unsent messages and arrivals during dispatch remain unread. Reactions, outgoing messages, content-free placeholders, and deleted messages are excluded before the limit. Group messages are batched by sender. Missing group sender identities or an unread count larger than the eligible local history fail before dispatch; sync the missing history first. A marker-only chat uses its latest eligible incoming message, or clears only the local marker when no such message is stored.
+Each call handles at most 100 messages, starting with the oldest messages in the current unread selection. Repeat the command for larger counts; unsent messages and arrivals during dispatch remain unread. Reactions, outgoing messages, content-free placeholders, and deleted messages are excluded before the limit. Group messages are batched by sender. Missing group sender identities or an unread count larger than a nonempty eligible local history fail before dispatch; sync the missing history first. A marker-only chat uses its latest eligible incoming message.
+
+If no eligible incoming message is stored, receipt mode atomically clears only local unread metadata, including a count reported by the phone. It sends no receipt or app-state patch, does not acknowledge unseen messages and does not change the phone's unread state. An eligible arrival between selection and completion prevents the local clear. Zero-receipt JSON results include `local_only: true`; text reports `local state only; no messages acknowledged`. Sync missing history when receipts are needed for those messages.
 
 WhatsApp's read-receipt privacy setting is respected and never changed. JSON output adds `receipts`, the number of dispatched messages. When nonzero it also includes `receipt` and `sender_notified`:
 
@@ -89,3 +91,13 @@ whatscli --agent chats mark-read --chat +15550000001 --timeout 2m
 whatscli chats mark-read --chat family --pick 1 --receipts --json
 whatscli chats cleanup --days 365 --dry-run
 ```
+
+## Late app-state recovery
+
+Recovery keeps one collection-specific event capture alive for up to 24 hours while the process remains open. A newer attempt replaces the previous capture. Events received after the synchronous wait returns are persisted in dispatch order, including when no global sync handler is installed. Closing the app stops admission and drains queued persistence before closing SQLite. Public SDK completion events cannot attribute a snapshot to a request: late events never clear older recovery intents or authorize a dependent mutation by themselves. A later verified full fetch can reconcile the retained debt.
+
+## Known-broken full snapshots
+
+A full fetch that fails LTHash verification records a per-collection flag in `wacli.db`, preserved across restarts. If the SDK already has a nonzero cursor, chat-state pre-write checks and sync startup can attempt an incremental fetch before repeating a full replay. Only a successful incremental fetch with persisted events admits continued operation; a missing cursor or failed fetch falls back to normal full-sync recovery. A failed full sync can delete that SDK cursor, so a fresh pairing still needs a usable primary snapshot.
+
+Incremental success clears only its own pre-read intent. Older replay debt and post-send intents remain until a verified full replay covers them; neither an empty delta nor a public recovery completion proves the old mutations were persisted. Background primary requests are limited to one per collection per six hours in each process, install persistence before sending, and stop with the app. Snapshot application remains unconfirmed. Failed flag writes are retried on subsequent full-sync results. This policy does not fix LTHash verification or guarantee a complete chat index.

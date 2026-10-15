@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Sync/auth: wait for confirmed login before metadata bootstrap, retain bounded key-delivery waits within the existing full-fetch budget, and renew durable app-state debt on later failures even after the automatic recovery budget is spent. Preserve generation fencing, other writers' intents and conservative ACK/completion handling; failed marker writes fence older checkpoints and dependent mutations until a later durable replay. Offline fixtures only; this does not establish or cure the cryptographic cause of LTHash failures.
+- Sync/auth: wait for confirmed login before metadata bootstrap while preserving transport cleanup on failed login waits, retain bounded key-delivery waits within the existing full-fetch budget, and renew durable app-state debt on later failures even after the automatic recovery budget is spent. Preserve generation fencing, other writers' intents and conservative ACK/completion handling; failed marker writes fence older checkpoints and dependent mutations until a later durable replay. Offline fixtures only; this does not establish or cure the cryptographic cause of LTHash failures.
 
 - Auth: recover a recorded revoked session with `auth logout` without connecting the invalid device. Preserve the existing account, history, drafts/outbound evidence and change checkpoints; retain revocation evidence until a confirmed new login. Keep normal remote logout, readonly and writer locks.
 

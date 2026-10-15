@@ -257,16 +257,15 @@ func (a *App) Sync(ctx context.Context, opts SyncOptions) (result SyncResult, sy
 	}
 	connectionEpoch.Store(nowUTC().UnixNano())
 	finishConnect := a.measureSyncStage(syncCtx, "connect", "")
-	connectErr := a.connectForSync(syncCtx, opts)
+	needsCleanup, connectErr := a.connectForSync(syncCtx, opts)
 	finishConnect(connectErr)
-	if err := connectErr; err != nil {
-		return SyncResult{}, err
-	}
 	// Ensure unavailable presence is sent on ALL post-connect exits
-	// (success, error, storage limit, reconnect failure), not just the
-	// success path. The websocket stays alive via DetachSocket, so the
-	// send can complete even after the sync context is cancelled.
+	// (including failed login waits), not just the success path.
+	// DetachSocket lets the send complete after sync context cancellation.
 	defer func() {
+		if !needsCleanup {
+			return
+		}
 		cancel()
 		a.live.transition("stopping")
 		ps.mu.Lock()
@@ -288,6 +287,9 @@ func (a *App) Sync(ctx context.Context, opts SyncOptions) (result SyncResult, sy
 		a.wa.RemoveEventHandler(handlerID)
 		a.sendPresenceBounded(types.PresenceUnavailable)
 	}()
+	if err := connectErr; err != nil {
+		return SyncResult{}, err
+	}
 	now = nowUTC().UnixNano()
 	lastEvent.Store(now)
 	finishMigration := a.measureSyncStage(syncCtx, "lid_migration", "")
@@ -383,10 +385,11 @@ func (a *App) Sync(ctx context.Context, opts SyncOptions) (result SyncResult, sy
 	return SyncResult{MessagesStored: messagesStored.Load()}, nil
 }
 
-func (a *App) connectForSync(ctx context.Context, opts SyncOptions) error {
+// needsCleanup means Connect succeeded, even if the later login wait failed.
+func (a *App) connectForSync(ctx context.Context, opts SyncOptions) (needsCleanup bool, err error) {
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return false, ctx.Err()
 	case <-a.connectGate:
 	}
 	defer func() { a.connectGate <- struct{}{} }()
@@ -408,19 +411,19 @@ func (a *App) connectForSync(ctx context.Context, opts SyncOptions) error {
 	}
 	for attempt := 1; attempt <= attempts; attempt++ {
 		if err := ctx.Err(); err != nil {
-			return err
+			return false, err
 		}
 		if err := a.sessionState.prepareConnect(a.wa.IsConnected); err != nil {
-			return err
+			return false, err
 		}
 		err := a.wa.Connect(ctx, connectOpts)
 		if err == nil {
 			// PairSuccess only completes pairing. The SDK may still need to
 			// replace the socket and confirm login before bootstrap can start.
-			return a.sessionState.waitForLogin(ctx)
+			return true, a.sessionState.waitForLogin(ctx)
 		}
 		if attempt == attempts || ctx.Err() != nil || !isRetryableAuthConnectError(err) {
-			return err
+			return false, err
 		}
 		a.emitWarning(
 			"auth_connect_retry",
@@ -430,10 +433,10 @@ func (a *App) connectForSync(ctx context.Context, opts SyncOptions) error {
 		select {
 		case <-time.After(authConnectRetryDelay(attempt)):
 		case <-ctx.Done():
-			return ctx.Err()
+			return false, ctx.Err()
 		}
 	}
-	return nil
+	return false, nil
 }
 
 func authConnectRetryDelay(attempt int) time.Duration {

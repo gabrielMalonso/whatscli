@@ -10,6 +10,7 @@ import (
 
 	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow/appstate"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
@@ -96,12 +97,12 @@ func TestConnectForSyncReusesOnlyCurrentConfirmation(t *testing.T) {
 		}
 		f.connected = true
 		f.emit(&events.Connected{})
-		if err := a.connectForSync(t.Context(), SyncOptions{}); err != nil {
+		if cleanup, err := a.connectForSync(t.Context(), SyncOptions{}); err != nil || !cleanup {
 			t.Fatal(err)
 		}
 		f.connected = false // stale confirmation from a previous socket
 		done := make(chan error, 1)
-		go func() { done <- a.connectForSync(t.Context(), SyncOptions{}) }()
+		go func() { _, err := a.connectForSync(t.Context(), SyncOptions{}); done <- err }()
 		synctest.Wait()
 		select {
 		case err := <-done:
@@ -115,4 +116,62 @@ func TestConnectForSyncReusesOnlyCurrentConfirmation(t *testing.T) {
 		}
 		a.Close()
 	})
+}
+
+func TestSyncLoginWaitFailureCleansUpOpenedTransport(t *testing.T) {
+	for _, presence := range []SyncPresenceMode{SyncPresenceModeNormal, SyncPresenceModeQuiet} {
+		for _, outcome := range []string{"cancelled", "deadline", "rejected", "revoked"} {
+			t.Run(string(presence)+"/"+outcome, func(t *testing.T) {
+				a := newTestApp(t)
+				synctest.Test(t, func(t *testing.T) {
+					ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+					defer cancel()
+					f := &handshakeWA{fakeWA: newFakeWA()}
+					f.connect = func(ctx context.Context, opts wa.ConnectOptions) error {
+						if !opts.DetachSocket {
+							t.Fatal("authenticated sync did not detach the socket")
+						}
+						f.connected = true
+						// The authenticated wrapper can send initial availability
+						// before the session observer receives Connected.
+						if !opts.SuppressInitialAvailablePresence {
+							if err := f.SendPresence(ctx, types.PresenceAvailable); err != nil {
+								t.Fatal(err)
+							}
+						}
+						switch outcome {
+						case "cancelled":
+							cancel()
+						case "rejected":
+							f.emit(&events.ConnectFailure{Reason: events.ConnectFailureGeneric})
+						case "revoked":
+							f.emit(&events.LoggedOut{Reason: events.ConnectFailureLoggedOut})
+						}
+						return nil
+					}
+					a.wa = f
+					_, err := a.Sync(ctx, SyncOptions{Mode: SyncModeOnce, PresenceMode: presence,
+						AfterConnect: func(context.Context) error {
+							t.Error("failed login reached metadata completion")
+							return nil
+						}})
+					if err == nil {
+						t.Fatal("login wait unexpectedly succeeded")
+					}
+					if presence == SyncPresenceModeNormal {
+						assertPresenceCalls(t, f.fakeWA, types.PresenceAvailable, types.PresenceUnavailable)
+					} else {
+						assertPresenceCalls(t, f.fakeWA, types.PresenceUnavailable)
+					}
+					if len(f.appStateFetches) != 0 || len(f.appStateRecoveries) != 0 {
+						t.Fatal("failed login started metadata traffic")
+					}
+					if required, err := a.db.AppStateRecoveryRequired("regular_low"); err != nil || !required {
+						t.Fatalf("login cleanup did not retain replay debt: %v, %v", required, err)
+					}
+					a.Close()
+				})
+			})
+		}
+	}
 }

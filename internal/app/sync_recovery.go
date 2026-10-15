@@ -17,6 +17,40 @@ import (
 
 const appStateRecoveryStepTimeout = 30 * time.Second
 
+type appStateFailureIntent struct {
+	generation   int64
+	retentionErr error
+}
+
+// renewAppStateFailure requires appStateRecoveryMu. Keep a failed renewal in
+// memory so no older checkpoint can retire the remaining durable coverage.
+func (a *App) renewAppStateFailure(name string) error {
+	intent := a.appStateFailureIntents[name]
+	generation, err := a.db.RenewAppStateRecoveryIntent(name, intent.generation)
+	if err == nil {
+		intent.generation = generation
+	}
+	intent.retentionErr = err
+	if a.appStateFailureIntents == nil {
+		a.appStateFailureIntents = make(map[string]appStateFailureIntent)
+	}
+	a.appStateFailureIntents[name] = intent
+	return err
+}
+
+// beginAppStateRecovery promotes any uncovered failure to durable debt before
+// capturing a generation for new work. Only a later covered replay can clear it.
+func (a *App) beginAppStateRecovery(name string) (int64, bool, error) {
+	a.appStateRecoveryMu.Lock()
+	defer a.appStateRecoveryMu.Unlock()
+	if a.appStateFailureIntents[name].retentionErr != nil {
+		if err := a.renewAppStateFailure(name); err != nil {
+			return 0, false, fmt.Errorf("retain observed WhatsApp app state failure for %s: %w", name, err)
+		}
+	}
+	return a.db.BeginAppStateRecovery(name)
+}
+
 func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateSyncError, recoveries *sync.Map) {
 	if evt == nil {
 		return
@@ -48,16 +82,11 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 	// Debt is independent of the automatic worker budget. Renew only our
 	// previous failure intent so repeated errors stay bounded, while a fetch
 	// that started earlier cannot checkpoint this newer failure away.
-	generation, err := a.db.RenewAppStateRecoveryIntent(name, a.appStateFailureIntents[name])
-	if err != nil {
+	if err := a.renewAppStateFailure(name); err != nil {
 		recordAppStateRecovery(ctx, name, appStateRecoveryPrepare, err)
 		a.warnAppStateRecovery(name, err)
 		return
 	}
-	if a.appStateFailureIntents == nil {
-		a.appStateFailureIntents = make(map[string]int64)
-	}
-	a.appStateFailureIntents[name] = generation
 	if ctx.Err() != nil {
 		return
 	}
@@ -102,7 +131,7 @@ func (a *App) recoverAppStateCollection(ctx context.Context, name string, timeou
 	}
 	defer release()
 
-	generation, _, err := a.db.BeginAppStateRecovery(name)
+	generation, _, err := a.beginAppStateRecovery(name)
 	if err != nil {
 		recordAppStateRecovery(ctx, name, appStateRecoveryPrepare, err)
 		a.warnAppStateRecovery(name, err)
@@ -210,7 +239,7 @@ func (a *App) syncAndPersistAppStateDelta(ctx context.Context, name appstate.WAP
 		return err
 	}
 	defer release()
-	generation, required, err := a.db.BeginAppStateRecovery(string(name))
+	generation, required, err := a.beginAppStateRecovery(string(name))
 	if err != nil {
 		return err
 	}

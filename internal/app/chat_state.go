@@ -245,7 +245,7 @@ func (a *App) beginChatStateWrite(ctx context.Context, collection appstate.WAPat
 }
 
 func (a *App) syncChatStateBeforeWrite(ctx context.Context, collection appstate.WAPatchName) error {
-	markerGeneration, recoveryRequired, err := a.db.BeginAppStateRecovery(string(collection))
+	markerGeneration, recoveryRequired, err := a.beginAppStateRecovery(string(collection))
 	if err != nil {
 		return fmt.Errorf("begin WhatsApp app state recovery for %s: %w", collection, err)
 	}
@@ -266,7 +266,7 @@ func (a *App) syncChatStateBeforeWrite(ctx context.Context, collection appstate.
 		if errors.Is(err, appstate.ErrMismatchingLTHash) || errors.Is(err, wa.ErrEmptyAppStateKeyShare) || errors.Is(err, appstate.ErrKeyNotFound) {
 			// The failed delta's SDK callback may have renewed debt. The full
 			// replay covers those earlier failures, but never a later callback.
-			markerGeneration, _, beginErr := a.db.BeginAppStateRecovery(string(collection))
+			markerGeneration, _, beginErr := a.beginAppStateRecovery(string(collection))
 			if beginErr != nil {
 				return fmt.Errorf("begin WhatsApp app state replay for %s: %w", collection, beginErr)
 			}
@@ -426,6 +426,11 @@ func (a *App) ownsManualAppStateFetch(collection appstate.WAPatchName) bool {
 }
 
 func (a *App) clearCompletedAppStateRecovery(collection appstate.WAPatchName, markerGeneration int64) error {
+	a.appStateRecoveryMu.Lock()
+	defer a.appStateRecoveryMu.Unlock()
+	if err := a.appStateFailureIntents[string(collection)].retentionErr; err != nil {
+		return fmt.Errorf("cannot checkpoint unretained WhatsApp app state failure for %s: %w", collection, err)
+	}
 	a.waMu.Lock()
 	defer a.waMu.Unlock()
 	// A read can finish after Sync removed coverage, while the detached SDK

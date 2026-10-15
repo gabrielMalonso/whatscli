@@ -18,6 +18,32 @@ func (d *DB) MarkAppStateRecoveryGeneration(collection string) (int64, error) {
 	return generations[0], nil
 }
 
+// RenewAppStateRecoveryIntent replaces only the caller's previous intent with
+// a newer generation. Other writers' intents survive; older checkpoints cannot
+// clear the new failure. A missing previous intent is safe after a checkpoint.
+func (d *DB) RenewAppStateRecoveryIntent(collection string, previous int64) (int64, error) {
+	collection = strings.TrimSpace(collection)
+	if collection == "" {
+		return 0, fmt.Errorf("app state collection is required")
+	}
+	tx, err := d.sql.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("begin renewing app state recovery intent: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var generation int64
+	if err := tx.QueryRow(`INSERT INTO app_state_recovery_intents(collection) VALUES(?) RETURNING id`, collection).Scan(&generation); err != nil {
+		return 0, fmt.Errorf("renew app state recovery intent: %w", err)
+	}
+	if _, err := tx.Exec(`DELETE FROM app_state_recovery_intents WHERE collection = ? AND id = ?`, collection, previous); err != nil {
+		return 0, fmt.Errorf("retire previous app state recovery intent: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit renewed app state recovery intent: %w", err)
+	}
+	return generation, nil
+}
+
 func (d *DB) MarkAppStateRecoveryGenerations(collections []string) ([]int64, error) {
 	if len(collections) == 0 {
 		return nil, nil

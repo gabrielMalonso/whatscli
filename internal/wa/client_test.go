@@ -39,6 +39,20 @@ func TestNewEnablesRetryMessageStore(t *testing.T) {
 	}
 }
 
+func TestSDKPairSuccessDoesNotConfirmLogin(t *testing.T) {
+	sdk := whatsmeow.NewClient(&waStore.Device{}, nil)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	ch, err := sdk.GetQRChannel(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sdk.DangerousInternals().DispatchEvent(&events.PairSuccess{})
+	if item := <-ch; item != whatsmeow.QRChannelSuccess || sdk.IsLoggedIn() || sdk.IsConnected() {
+		t.Fatalf("pairing result %v must not prove authenticated transport", item)
+	}
+}
+
 func TestClientPinnedLoginDoesNotProveCurrentTransport(t *testing.T) {
 	jid := types.NewJID("15550000001", types.DefaultUserServer)
 	noop := &waStore.NoopStore{Error: errors.New("isolated fixture has no keys")}

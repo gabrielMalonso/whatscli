@@ -17,6 +17,40 @@ import (
 
 const appStateRecoveryStepTimeout = 30 * time.Second
 
+type appStateFailureIntent struct {
+	generation   int64
+	retentionErr error
+}
+
+// renewAppStateFailure requires appStateRecoveryMu. Keep a failed renewal in
+// memory so no older checkpoint can retire the remaining durable coverage.
+func (a *App) renewAppStateFailure(name string) error {
+	intent := a.appStateFailureIntents[name]
+	generation, err := a.db.RenewAppStateRecoveryIntent(name, intent.generation)
+	if err == nil {
+		intent.generation = generation
+	}
+	intent.retentionErr = err
+	if a.appStateFailureIntents == nil {
+		a.appStateFailureIntents = make(map[string]appStateFailureIntent)
+	}
+	a.appStateFailureIntents[name] = intent
+	return err
+}
+
+// beginAppStateRecovery promotes any uncovered failure to durable debt before
+// capturing a generation for new work. Only a later covered replay can clear it.
+func (a *App) beginAppStateRecovery(name string) (int64, bool, error) {
+	a.appStateRecoveryMu.Lock()
+	defer a.appStateRecoveryMu.Unlock()
+	if a.appStateFailureIntents[name].retentionErr != nil {
+		if err := a.renewAppStateFailure(name); err != nil {
+			return 0, false, fmt.Errorf("retain observed WhatsApp app state failure for %s: %w", name, err)
+		}
+	}
+	return a.db.BeginAppStateRecovery(name)
+}
+
 func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateSyncError, recoveries *sync.Map) {
 	if evt == nil {
 		return
@@ -25,9 +59,6 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 	if errors.Is(evt.Error, wa.ErrEmptyAppStateKeyShare) {
 		code, reason = "app_state_key_unavailable", "requires a key shared without data"
 	} else if !errors.Is(evt.Error, appstate.ErrMismatchingLTHash) {
-		return
-	}
-	if a.ownsManualAppStateFetch(evt.Name) {
 		return
 	}
 	name := strings.TrimSpace(string(evt.Name))
@@ -48,6 +79,33 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 		phase = appStateRecoveryFullSync
 	}
 	recordAppStateRecovery(ctx, name, phase, evt.Error)
+	// Debt is independent of the automatic worker budget. Renew only our
+	// previous failure intent so repeated errors stay bounded, while a fetch
+	// that started earlier cannot checkpoint this newer failure away.
+	if err := a.renewAppStateFailure(name); err != nil {
+		recordAppStateRecovery(ctx, name, appStateRecoveryPrepare, err)
+		a.warnAppStateRecovery(name, err)
+		return
+	}
+	if ctx.Err() != nil {
+		return
+	}
+	// A callback can belong to an independent SDK fetch while our fetch is
+	// still returning. Retain it conservatively, but never fetch recursively
+	// from a callback under the SDK lock or admit a second recovery worker.
+	if a.ownsManualAppStateFetch(evt.Name) {
+		return
+	}
+	// Before login, foreground bootstrap will pick up this durable debt.
+	// Do not start recovery traffic or spend its budget on a pairing socket.
+	if state := a.sessionState; state != nil {
+		state.mu.Lock()
+		confirmed := state.confirmed
+		state.mu.Unlock()
+		if !confirmed {
+			return
+		}
+	}
 	if _, loaded := recoveries.LoadOrStore(name, struct{}{}); loaded {
 		return
 	}
@@ -56,16 +114,11 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 		a.emitWarning(code,
 			fmt.Sprintf("warning: app state %s %s; attempting full sync", name, reason),
 			map[string]any{"name": name})
-		a.recoverAppStateCollection(ctx, name, recoveries, appStateRecoveryStepTimeout)
+		a.recoverAppStateCollection(ctx, name, appStateRecoveryStepTimeout)
 	})
 }
 
-func (a *App) recoverAppStateCollection(ctx context.Context, name string, recoveries *sync.Map, timeout time.Duration) {
-	defer func() {
-		if ctx.Err() != nil {
-			recoveries.Delete(name)
-		}
-	}()
+func (a *App) recoverAppStateCollection(ctx context.Context, name string, timeout time.Duration) {
 	lockCtx, cancelLock := context.WithTimeout(ctx, timeout)
 	finishLock := a.measureSyncStage(lockCtx, "lock_wait", name)
 	release, err := a.acquireChatStateSync(lockCtx)
@@ -78,7 +131,7 @@ func (a *App) recoverAppStateCollection(ctx context.Context, name string, recove
 	}
 	defer release()
 
-	generation, _, err := a.db.BeginAppStateRecovery(name)
+	generation, _, err := a.beginAppStateRecovery(name)
 	if err != nil {
 		recordAppStateRecovery(ctx, name, appStateRecoveryPrepare, err)
 		a.warnAppStateRecovery(name, err)
@@ -87,7 +140,7 @@ func (a *App) recoverAppStateCollection(ctx context.Context, name string, recove
 	collection := appstate.WAPatchName(name)
 	tracker := &appStatePersistenceTracker{}
 	fetchCtx, cancelFetch := context.WithTimeout(ctx, timeout)
-	fetchErr, persistenceErr := a.fetchAndPersistAppState(fetchCtx, collection, true, tracker)
+	fetchErr, persistenceErr := a.fetchFullAppStateWithKeyWait(fetchCtx, collection, tracker)
 	fetchErr = errors.Join(fetchErr, fetchCtx.Err())
 	cancelFetch()
 	recordAppStateRecovery(ctx, name, appStateRecoveryFullSync, fetchErr)
@@ -108,6 +161,12 @@ func (a *App) recoverAppStateCollection(ctx context.Context, name string, recove
 		return
 	}
 	if ctx.Err() != nil {
+		return
+	}
+	if errors.Is(fetchErr, appstate.ErrKeyNotFound) {
+		// Missing keys are requested by the SDK. Exhausting their delivery
+		// window must retain debt without escalating to a fatal snapshot.
+		a.warnAppStateRecovery(name, fetchErr)
 		return
 	}
 	a.emitWarning("app_state_full_sync_failed",
@@ -149,7 +208,7 @@ func (a *App) syncAppStateDeltas(ctx context.Context, recoveries *sync.Map) {
 	}
 	for _, name := range pending {
 		if _, loaded := recoveries.LoadOrStore(name, struct{}{}); !loaded {
-			a.recoverAppStateCollection(ctx, name, recoveries, appStateRecoveryStepTimeout)
+			a.recoverAppStateCollection(ctx, name, appStateRecoveryStepTimeout)
 		}
 	}
 	for _, name := range mirroredAppStateCollections {
@@ -180,7 +239,7 @@ func (a *App) syncAndPersistAppStateDelta(ctx context.Context, name appstate.WAP
 		return err
 	}
 	defer release()
-	generation, required, err := a.db.BeginAppStateRecovery(string(name))
+	generation, required, err := a.beginAppStateRecovery(string(name))
 	if err != nil {
 		return err
 	}

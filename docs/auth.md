@@ -21,7 +21,7 @@ whatscli --account work auth status
 - Transient websocket drops before pairing completes are retried with a fresh QR/code.
 - Passkey-gated pairing is not yet supported. If WhatsApp requests passkey verification or confirmation, auth stops with an actionable error instead of continuing to rotate unusable QR codes.
 - The pinned SDK exposes passkey/WebAuthn response and confirmation primitives; WhatsCLI has no authenticator integration. See [the tested integration boundary](continuous-acceptance.md#sdk-boundaries); a refusal does not authorize clearing an existing store.
-- After pairing, auth runs bootstrap sync until idle unless `--follow` is set.
+- After pairing, auth waits for confirmed login before starting metadata bootstrap, then syncs until idle unless `--follow` is set. Pairing success alone does not confirm login; cancellation, login rejection or revocation stop this wait. An opened transport retains the bounded final presence cleanup even when the login wait fails.
 - Bootstrap sync honors `WACLI_SYNC_MAX_MESSAGES` and `WACLI_SYNC_MAX_DB_SIZE` to cap local history growth.
 - `--events` emits NDJSON lifecycle events on stderr, including raw QR and phone-pairing codes for external renderers.
 - `auth status` reads the existing session read-only by default and creates no store, session, or writer lock. A missing session reports unauthenticated. It reports whether the local store is authenticated. A recorded remote logout overrides a stale device row until WhatsApp confirms a new login.

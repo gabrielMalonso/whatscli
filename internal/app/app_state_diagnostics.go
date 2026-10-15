@@ -157,7 +157,7 @@ func recordAppStateRecovery(ctx context.Context, collection string, phase AppSta
 			outcome, code = AppStateRecoveryUnconfirmed, "completion_unconfirmed"
 		case errors.Is(err, appstate.ErrMismatchingLTHash):
 			code = "lthash_mismatch"
-		case errors.Is(err, wa.ErrEmptyAppStateKeyShare):
+		case errors.Is(err, wa.ErrEmptyAppStateKeyShare), errors.Is(err, appstate.ErrKeyNotFound):
 			code = "key_unavailable"
 		}
 	}

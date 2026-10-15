@@ -14,6 +14,7 @@ import (
 	"github.com/gabrielMalonso/whatscli/internal/store"
 	"github.com/gabrielMalonso/whatscli/internal/wa"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/appstate"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -147,10 +148,12 @@ type App struct {
 	appStateRecoveryWorkers sync.WaitGroup
 	appStateRecoveryMu      sync.Mutex
 	appStateRecoveryClosing bool
-	appStateFailureIntents  map[string]appStateFailureIntent // guarded by appStateRecoveryMu
-	appStateReplayOnClose   bool                             // guarded by waMu; callbacks need not drain at Disconnect
-	appStateRecoveryOnClose *appStateRecoveryRun             // guarded by waMu; closing coverage belongs to the last sync run
-	appStateUnobserved      bool                             // guarded by waMu; replay cannot retire coverage debt
+	appStateFailureIntents  map[string]appStateFailureIntent                  // guarded by appStateRecoveryMu
+	appStateReplayOnClose   bool                                              // guarded by waMu; callbacks need not drain at Disconnect
+	appStateRecoveryOnClose *appStateRecoveryRun                              // guarded by waMu; closing coverage belongs to the last sync run
+	appStateUnobserved      bool                                              // guarded by waMu; replay cannot retire coverage debt
+	lateRecoveries          map[appstate.WAPatchName]*appStateRecoveryCapture // guarded by appStateRecoveryMu
+	lateRecoveryWorkers     sync.WaitGroup
 	manualFetchMu           sync.Mutex
 	manualFetches           map[string]int
 	heartbeatLast           atomic.Int64
@@ -232,6 +235,9 @@ func (a *App) Close() {
 func (a *App) close() {
 	a.appStateRecoveryMu.Lock()
 	a.appStateRecoveryClosing = true
+	for _, capture := range a.lateRecoveries {
+		capture.cancel()
+	}
 	a.appStateRecoveryMu.Unlock()
 	a.waMu.Lock()
 	a.closed = true
@@ -259,6 +265,7 @@ func (a *App) close() {
 	// A completed command frontier may hand later ready tasks to a background
 	// drainer. Keep SQLite open until that drainer has finished every write.
 	a.appStateRecoveryWorkers.Wait()
+	a.lateRecoveryWorkers.Wait()
 	_ = a.appStatePersist.waitIdle(context.Background())
 	if sessionResolver != nil {
 		_ = sessionResolver.Close()

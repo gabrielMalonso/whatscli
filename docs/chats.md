@@ -89,3 +89,7 @@ whatscli --agent chats mark-read --chat +15550000001 --timeout 2m
 whatscli chats mark-read --chat family --pick 1 --receipts --json
 whatscli chats cleanup --days 365 --dry-run
 ```
+
+## Late app-state recovery
+
+Recovery keeps one collection-specific event capture alive for up to 24 hours while the process remains open. A newer attempt replaces the previous capture. Events received after the synchronous wait returns are persisted in dispatch order, including when no global sync handler is installed. Closing the app stops admission and drains queued persistence before closing SQLite. Public SDK completion events cannot attribute a snapshot to a request: late events never clear older recovery intents or authorize a dependent mutation by themselves. A later verified full fetch can reconcile the retained debt.

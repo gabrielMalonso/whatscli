@@ -344,29 +344,12 @@ func (a *App) recoverMismatchingAppState(ctx context.Context, collection appstat
 }
 
 func (a *App) waitForPrimaryAppStateRecovery(ctx context.Context, collection appstate.WAPatchName, onRequested func(types.MessageID)) ([]any, error) {
-	var mu sync.Mutex
-	var captured []any
-	finished := false
-	// This capture is only for ordered persistence, never request attribution.
-	// SDK removal plus closed admission ends it before its reserved ticket drains.
-	handlerID := a.wa.AddEventHandler(func(evt any) {
-		mu.Lock()
-		defer mu.Unlock()
-		if finished {
-			return
-		}
-		for _, name := range appStateCollectionsForEvent(evt) {
-			if name == collection {
-				captured = append(captured, evt)
-				break
-			}
-		}
-	})
+	capture, err := a.newAppStateRecoveryCapture(collection)
+	if err != nil {
+		return nil, err
+	}
 	exchange, err := a.wa.RequestAppStateRecoveryObserved(ctx, string(collection), onRequested)
-	mu.Lock()
-	finished = true
-	mu.Unlock()
-	a.wa.RemoveEventHandler(handlerID)
+	captured := capture.releaseBuffered()
 	a.emitOrPrint("app_state_recovery_observed", map[string]any{
 		"requested_collection": string(collection), "ack_confirmed": exchange.ACKConfirmed,
 		"response_received": exchange.ResponseReceived, "completion": "unconfirmed",

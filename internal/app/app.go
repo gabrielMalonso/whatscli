@@ -97,6 +97,7 @@ type WAClient interface {
 	FetchAppStateEvents(ctx context.Context, name string, fullSync, onlyIfNotSynced bool) ([]any, error)
 	RequestAppStateRecoveryObserved(ctx context.Context, name string, onAcknowledged func(types.MessageID)) (wa.AppStateRecoveryExchange, error)
 	Logout(ctx context.Context) error
+	DeleteSession(ctx context.Context) error
 	LinkedJID() string
 	LinkedLID() string
 	CheckPublicPair(context.Context, types.JID, types.JID) (wa.PublicPairResult, error)

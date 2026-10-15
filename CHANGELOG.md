@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Auth: recover a recorded revoked session with `auth logout` without connecting the invalid device. Preserve the existing account, history, drafts/outbound evidence and change checkpoints; retain revocation evidence until a confirmed new login. Keep normal remote logout, readonly and writer locks.
+
 - Build: atomically replace the local `wacli` compatibility binary so rebuilds and pnpm commands work while a legacy sync owner is running. Update the documentation social card to WhatsCLI.
 
 - Security: build with Go 1.27.2 to address reachable standard-library vulnerabilities reported by the CI govulncheck gate. Align development, CI, release verification and the pinned Docker builder while retaining the Go 1.27.0 source minimum and the existing vulnerability checks.

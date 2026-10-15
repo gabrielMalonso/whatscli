@@ -256,7 +256,8 @@ func phoneFromLinkedJID(linkedJID string) string {
 func newAuthLogoutCmd(flags *rootFlags) *cobra.Command {
 	return &cobra.Command{
 		Use:   "logout",
-		Short: "Logout (invalidate session)",
+		Short: "Logout or clear an already revoked local session",
+		Long:  "Invalidate the linked-device session. If a remote logout was already recorded, clear only the local session without connecting. Account registration and archive data are preserved. Revocation evidence remains until a new confirmed login.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := flags.requireWritable(); err != nil {
 				return err
@@ -270,13 +271,7 @@ func newAuthLogoutCmd(flags *rootFlags) *cobra.Command {
 			}
 			defer closeApp(a, lk)
 
-			if err := a.EnsureAuthed(ctx); err != nil {
-				return err
-			}
-			if err := a.Connect(ctx, false, nil); err != nil {
-				return err
-			}
-			if err := a.WA().Logout(ctx); err != nil {
+			if err := a.Logout(ctx); err != nil {
 				return err
 			}
 

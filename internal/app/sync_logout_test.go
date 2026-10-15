@@ -103,9 +103,8 @@ func TestSyncEventHandlerEmitsLoggedOutAndSignals(t *testing.T) {
 }
 
 // The human (non --events) output must tell the operator how to recover:
-// sync keeps the local device record on a forced logout, so a bare
-// `auth --phone` short-circuits — the printed hint must name the
-// `whatscli auth logout` → `whatscli auth --phone` sequence.
+// a retained local device record prevents pairing, so the printed hint must
+// name the explicit logout followed by pairing with the same selection.
 func TestSyncLoggedOutHumanOutputIncludesRecoveryHint(t *testing.T) {
 	a := newTestApp(t)
 	f := newFakeWA()

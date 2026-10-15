@@ -263,9 +263,13 @@ func (a *App) syncChatStateBeforeWrite(ctx context.Context, collection appstate.
 			return a.clearCompletedAppStateRecovery(collection, markerGeneration)
 		}
 
-		if errors.Is(err, appstate.ErrMismatchingLTHash) || errors.Is(err, wa.ErrEmptyAppStateKeyShare) {
-			return a.replayRequiredAppState(ctx, collection, markerGeneration, tracker)
-		} else if errors.Is(err, appstate.ErrKeyNotFound) {
+		if errors.Is(err, appstate.ErrMismatchingLTHash) || errors.Is(err, wa.ErrEmptyAppStateKeyShare) || errors.Is(err, appstate.ErrKeyNotFound) {
+			// The failed delta's SDK callback may have renewed debt. The full
+			// replay covers those earlier failures, but never a later callback.
+			markerGeneration, _, beginErr := a.db.BeginAppStateRecovery(string(collection))
+			if beginErr != nil {
+				return fmt.Errorf("begin WhatsApp app state replay for %s: %w", collection, beginErr)
+			}
 			return a.replayRequiredAppState(ctx, collection, markerGeneration, tracker)
 		} else {
 			return fmt.Errorf("sync WhatsApp chat state before update: %w", err)

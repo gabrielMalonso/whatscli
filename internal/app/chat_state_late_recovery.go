@@ -16,6 +16,7 @@ const lateAppStateRecoveryMaxWait = 24 * time.Hour
 // then forwards later events at their dispatch boundary. Public completion
 // events cannot attribute a snapshot to our request or retire older debt.
 type appStateRecoveryCapture struct {
+	ctx        context.Context
 	app        *App
 	collection appstate.WAPatchName
 	handlerID  uint32
@@ -26,7 +27,7 @@ type appStateRecoveryCapture struct {
 	stopped    bool
 }
 
-func (a *App) newAppStateRecoveryCapture(collection appstate.WAPatchName) (*appStateRecoveryCapture, error) {
+func (a *App) newAppStateRecoveryCapture(collection appstate.WAPatchName, forward bool) (*appStateRecoveryCapture, error) {
 	a.appStateRecoveryMu.Lock()
 	defer a.appStateRecoveryMu.Unlock()
 	if a.appStateRecoveryClosing {
@@ -37,7 +38,7 @@ func (a *App) newAppStateRecoveryCapture(collection appstate.WAPatchName) (*appS
 		previous.stop()
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	capture := &appStateRecoveryCapture{app: a, collection: collection, cancel: cancel}
+	capture := &appStateRecoveryCapture{ctx: ctx, app: a, collection: collection, cancel: cancel, forward: forward}
 	capture.handlerID = a.wa.AddEventHandler(capture.handle)
 	if a.lateRecoveries == nil {
 		a.lateRecoveries = make(map[appstate.WAPatchName]*appStateRecoveryCapture)

@@ -93,3 +93,9 @@ whatscli chats cleanup --days 365 --dry-run
 ## Late app-state recovery
 
 Recovery keeps one collection-specific event capture alive for up to 24 hours while the process remains open. A newer attempt replaces the previous capture. Events received after the synchronous wait returns are persisted in dispatch order, including when no global sync handler is installed. Closing the app stops admission and drains queued persistence before closing SQLite. Public SDK completion events cannot attribute a snapshot to a request: late events never clear older recovery intents or authorize a dependent mutation by themselves. A later verified full fetch can reconcile the retained debt.
+
+## Known-broken full snapshots
+
+A full fetch that fails LTHash verification records a per-collection flag in `wacli.db`, preserved across restarts. If the SDK already has a nonzero cursor, chat-state pre-write checks and sync startup can attempt an incremental fetch before repeating a full replay. Only a successful incremental fetch with persisted events admits continued operation; a missing cursor or failed fetch falls back to normal full-sync recovery. A failed full sync can delete that SDK cursor, so a fresh pairing still needs a usable primary snapshot.
+
+Incremental success clears only its own pre-read intent. Older replay debt and post-send intents remain until a verified full replay covers them; neither an empty delta nor a public recovery completion proves the old mutations were persisted. Background primary requests are limited to one per collection per six hours in each process, install persistence before sending, and stop with the app. Snapshot application remains unconfirmed. Failed flag writes are retried on subsequent full-sync results. This policy does not fix LTHash verification or guarantee a complete chat index.

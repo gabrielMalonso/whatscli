@@ -48,7 +48,7 @@ func TestLateAppStateRecoveryPreservesDispatchOrderAndNewerDebt(t *testing.T) {
 	if err := a.db.UpsertChat(chat.String(), "dm", "Synthetic", time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	capture, err := a.newAppStateRecoveryCapture(appstate.WAPatchRegularLow)
+	capture, err := a.newAppStateRecoveryCapture(appstate.WAPatchRegularLow, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestLateAppStateRecoveryCaptureLifetime(t *testing.T) {
 			f := newFakeWA()
 			a.wa = f
 			synctest.Test(t, func(t *testing.T) {
-				first, err := a.newAppStateRecoveryCapture(appstate.WAPatchRegularLow)
+				first, err := a.newAppStateRecoveryCapture(appstate.WAPatchRegularLow, false)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -93,7 +93,7 @@ func TestLateAppStateRecoveryCaptureLifetime(t *testing.T) {
 				case "expire":
 					time.Sleep(lateAppStateRecoveryMaxWait)
 				case "replace":
-					if _, err := a.newAppStateRecoveryCapture(appstate.WAPatchRegularLow); err != nil {
+					if _, err := a.newAppStateRecoveryCapture(appstate.WAPatchRegularLow, false); err != nil {
 						t.Fatal(err)
 					}
 				}

@@ -36,12 +36,15 @@ func (f *appStateContextWA) FetchAppStateEvents(ctx context.Context, name string
 	if f.fetchEvents != nil && (fullSync || f.fetchAppState == nil) {
 		snapshot := f.settingsSnapshot()
 		events, err := f.fetchEvents(ctx, name, fullSync, onlyIfNotSynced)
+		f.noteFullSyncResult(fullSync, err)
 		for _, evt := range events {
 			f.applyFetchedChatSettings(evt, snapshot)
 		}
 		return events, err
 	}
-	return nil, f.fetchAppState(ctx, name, fullSync, onlyIfNotSynced)
+	err := f.fetchAppState(ctx, name, fullSync, onlyIfNotSynced)
+	f.noteFullSyncResult(fullSync, err)
+	return nil, err
 }
 
 func (f *appStateContextWA) RequestAppStateRecoveryObserved(ctx context.Context, name string, onAcknowledged func(types.MessageID)) (wa.AppStateRecoveryExchange, error) {

@@ -72,6 +72,7 @@ type fakeWA struct {
 	onDemandErr                 error
 	downloadHistory             func(notif *waE2E.HistorySyncNotification) (*waHistorySync.HistorySync, error)
 	deleteHistoryCalls          []*waE2E.HistorySyncNotification
+	hasLocalAppState            bool
 	appStateRecoveryErr         error
 	onAppStateRecovery          func(name string)
 	appStateFetchErr            error
@@ -1042,6 +1043,7 @@ func (f *fakeWA) FetchAppStateEvents(ctx context.Context, name string, fullSync,
 	}
 	eventCB := f.appStateFetchEvent
 	f.mu.Unlock()
+	f.noteFullSyncResult(fullSync, err)
 	if err != nil {
 		if !errors.Is(err, appstate.ErrKeyNotFound) {
 			f.emit(&events.AppStateSyncError{Name: appstate.WAPatchName(name), FullSync: fullSync, Error: err})
@@ -1109,4 +1111,23 @@ func (f *fakeWA) LinkedLID() string {
 
 func (f *fakeWA) DownloadRetriedMediaToFile(ctx context.Context, directPath string, fileHash, mediaKey []byte, fileLength uint64, mediaType, targetPath string) (int64, error) {
 	return f.DownloadMediaToFile(ctx, directPath, nil, fileHash, mediaKey, fileLength, mediaType, "", targetPath)
+}
+
+func (f *fakeWA) HasLocalAppState(ctx context.Context, name string) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.hasLocalAppState, nil
+}
+
+// noteFullSyncResult models stock whatsmeow's destructive full sync:
+// fetchAppState deletes the saved collection version before decoding, so a
+// failed full sync leaves no local app state behind, and a verified one
+// stores a fresh version.
+func (f *fakeWA) noteFullSyncResult(fullSync bool, err error) {
+	if !fullSync {
+		return
+	}
+	f.mu.Lock()
+	f.hasLocalAppState = err == nil
+	f.mu.Unlock()
 }

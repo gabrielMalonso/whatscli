@@ -139,6 +139,18 @@ func (a *App) recoverAppStateCollection(ctx context.Context, name string, timeou
 	}
 	collection := appstate.WAPatchName(name)
 	tracker := &appStatePersistenceTracker{}
+	// A restored cursor on a known-broken collection must survive startup.
+	// Incremental success admits continued operation without retiring old debt.
+	deltaCtx, cancelDelta := context.WithTimeout(ctx, timeout)
+	handled, deltaErr := a.degradedAppStateReplay(deltaCtx, collection, generation, tracker)
+	cancelDelta()
+	if handled {
+		recordAppStateRecovery(ctx, name, appStateRecoveryDelta, deltaErr)
+		if deltaErr != nil {
+			a.warnAppStateRecovery(name, deltaErr)
+		}
+		return
+	}
 	fetchCtx, cancelFetch := context.WithTimeout(ctx, timeout)
 	fetchErr, persistenceErr := a.fetchFullAppStateWithKeyWait(fetchCtx, collection, tracker)
 	fetchErr = errors.Join(fetchErr, fetchCtx.Err())

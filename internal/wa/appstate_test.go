@@ -7,6 +7,36 @@ import (
 	"go.mau.fi/whatsmeow/types"
 )
 
+func TestHasLocalAppStateUsesExactCollectionCursor(t *testing.T) {
+	c, err := New(Options{StorePath: newPairedSessionStore(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if has, err := c.HasLocalAppState(t.Context(), "regular_low"); err != nil || has {
+		t.Fatalf("fresh collection = %v, %v", has, err)
+	}
+	if err := c.client.Store.AppState.PutAppStateVersion(t.Context(), "regular_low", 1173, [128]byte{}); err != nil {
+		t.Fatal(err)
+	}
+	if has, err := c.HasLocalAppState(t.Context(), "regular_low"); err != nil || !has {
+		t.Fatalf("restored collection = %v, %v", has, err)
+	}
+	if has, err := c.HasLocalAppState(t.Context(), "regular_high"); err != nil || has {
+		t.Fatalf("unrelated collection = %v, %v", has, err)
+	}
+	if err := c.client.Store.AppState.DeleteAppStateVersion(t.Context(), "regular_low"); err != nil {
+		t.Fatal(err)
+	}
+	if has, err := c.HasLocalAppState(t.Context(), "regular_low"); err != nil || has {
+		t.Fatalf("reset collection = %v, %v", has, err)
+	}
+	c.Close()
+	if _, err := c.HasLocalAppState(context.Background(), "regular_low"); err == nil {
+		t.Fatal("closed session reported a usable cursor")
+	}
+}
+
 func TestChatSettingsCacheExactJIDAndLifetime(t *testing.T) {
 	c, err := New(Options{StorePath: newPairedSessionStore(t)})
 	if err != nil {

@@ -278,6 +278,9 @@ func (a *App) syncChatStateBeforeWrite(ctx context.Context, collection appstate.
 }
 
 func (a *App) replayRequiredAppState(ctx context.Context, collection appstate.WAPatchName, markerGeneration int64, tracker *appStatePersistenceTracker) error {
+	if handled, err := a.degradedAppStateReplay(ctx, collection, markerGeneration, tracker); handled {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(ctx, appStateRecoveryMaxWait)
 	defer cancel()
 	fetchErr, persistenceErr := a.fetchFullAppStateWithKeyWait(ctx, collection, tracker)
@@ -344,7 +347,7 @@ func (a *App) recoverMismatchingAppState(ctx context.Context, collection appstat
 }
 
 func (a *App) waitForPrimaryAppStateRecovery(ctx context.Context, collection appstate.WAPatchName, onRequested func(types.MessageID)) ([]any, error) {
-	capture, err := a.newAppStateRecoveryCapture(collection)
+	capture, err := a.newAppStateRecoveryCapture(collection, false)
 	if err != nil {
 		return nil, err
 	}
@@ -374,6 +377,13 @@ func (a *App) fetchAndPersistAppState(ctx context.Context, collection appstate.W
 		defer releaseFetch()
 		eventsToPersist, fetchErr = a.wa.FetchAppStateEvents(ctx, string(collection), fullSync, false)
 	}()
+	if fullSync {
+		if fetchErr == nil {
+			a.setAppStateFullSyncResult(collection, false)
+		} else if errors.Is(fetchErr, appstate.ErrMismatchingLTHash) {
+			a.setAppStateFullSyncResult(collection, true)
+		}
+	}
 	result := make(chan error, 1)
 	frontier := a.appStatePersist.complete(ticket, func() {
 		result <- a.persistFetchedAppStateEvents(ctx, eventsToPersist, tracker)

@@ -28,23 +28,29 @@ type appStateRecoveryCapture struct {
 }
 
 func (a *App) newAppStateRecoveryCapture(collection appstate.WAPatchName, forward bool) (*appStateRecoveryCapture, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	capture := &appStateRecoveryCapture{ctx: ctx, app: a, collection: collection, cancel: cancel, forward: forward}
 	a.appStateRecoveryMu.Lock()
-	defer a.appStateRecoveryMu.Unlock()
 	if a.appStateRecoveryClosing {
+		a.appStateRecoveryMu.Unlock()
+		cancel()
 		return nil, fmt.Errorf("application is closing")
 	}
 	if previous := a.lateRecoveries[collection]; previous != nil {
 		previous.cancel()
-		previous.stop()
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	capture := &appStateRecoveryCapture{ctx: ctx, app: a, collection: collection, cancel: cancel, forward: forward}
-	capture.handlerID = a.wa.AddEventHandler(capture.handle)
 	if a.lateRecoveries == nil {
 		a.lateRecoveries = make(map[appstate.WAPatchName]*appStateRecoveryCapture)
 	}
 	a.lateRecoveries[collection] = capture
-	a.lateRecoveryWorkers.Go(func() {
+	// Admit cleanup before releasing the closing gate, but never call the
+	// SDK under it: dispatch can hold the SDK handler lock while entering
+	// our app-state error handler, which takes this same gate.
+	a.lateRecoveryWorkers.Add(1)
+	a.appStateRecoveryMu.Unlock()
+	capture.handlerID = a.wa.AddEventHandler(capture.handle)
+	go func() {
+		defer a.lateRecoveryWorkers.Done()
 		timer := time.NewTimer(lateAppStateRecoveryMaxWait)
 		defer timer.Stop()
 		select {
@@ -57,7 +63,7 @@ func (a *App) newAppStateRecoveryCapture(collection appstate.WAPatchName, forwar
 			delete(a.lateRecoveries, collection)
 		}
 		a.appStateRecoveryMu.Unlock()
-	})
+	}()
 	return capture, nil
 }
 

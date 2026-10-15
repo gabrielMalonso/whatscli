@@ -14,6 +14,30 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type recoveryRegistrationWA struct {
+	*fakeWA
+	app *App
+	t   *testing.T
+}
+
+func (f *recoveryRegistrationWA) AddEventHandler(handler func(any)) uint32 {
+	if !f.app.appStateRecoveryMu.TryLock() {
+		f.t.Error("SDK handler registration holds the app-state closing gate")
+	} else {
+		f.app.appStateRecoveryMu.Unlock()
+	}
+	return f.fakeWA.AddEventHandler(handler)
+}
+
+func TestLateAppStateRecoveryRegistrationReleasesClosingGate(t *testing.T) {
+	a := newTestApp(t)
+	a.wa = &recoveryRegistrationWA{fakeWA: newFakeWA(), app: a, t: t}
+	if _, err := a.newAppStateRecoveryCapture(appstate.WAPatchRegularLow, true); err != nil {
+		t.Fatal(err)
+	}
+	a.Close()
+}
+
 func TestLateAppStateRecoveryPersistsSDKEventsWithoutCheckpoint(t *testing.T) {
 	a, fixture, chat := sdkMirrorFixture(t)
 	a.wa = fixture

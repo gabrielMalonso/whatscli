@@ -320,6 +320,52 @@ func TestAppStateRecoveryGenerationDoesNotClearNewFailure(t *testing.T) {
 	}
 }
 
+func TestRenewAppStateRecoveryIntentPreservesOtherWritersAndFencesCheckpoint(t *testing.T) {
+	db := openTestDB(t)
+	other, err := db.MarkAppStateRecoveryGeneration("regular_low")
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous := int64(0)
+	for range 10 {
+		previous, err = db.RenewAppStateRecoveryIntent("regular_low", previous)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	var count int
+	if err := db.sql.QueryRow(`SELECT count(*) FROM app_state_recovery_intents`).Scan(&count); err != nil || count != 2 {
+		t.Fatalf("renewal changed other writers or grew rows: %d, %v", count, err)
+	}
+	if cleared, err := db.ClearAppStateRecoveryGeneration("regular_low", other); err != nil || cleared {
+		t.Fatalf("older checkpoint cleared new failure: %v, %v", cleared, err)
+	}
+	if cleared, err := db.ClearAppStateRecoveryGeneration("regular_low", previous); err != nil || !cleared {
+		t.Fatalf("current checkpoint failed: %v, %v", cleared, err)
+	}
+	if next, err := db.RenewAppStateRecoveryIntent("regular_low", previous); err != nil || next <= previous {
+		t.Fatalf("renewal after checkpoint reused a generation: %d, %v", next, err)
+	}
+}
+
+func TestRenewAppStateRecoveryIntentRollsBackIfRetirementFails(t *testing.T) {
+	db := openTestDB(t)
+	previous, err := db.MarkAppStateRecoveryGeneration("regular_low")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.sql.Exec(`CREATE TRIGGER fail_retirement BEFORE DELETE ON app_state_recovery_intents BEGIN SELECT RAISE(FAIL, 'synthetic retirement failure'); END`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.RenewAppStateRecoveryIntent("regular_low", previous); err == nil {
+		t.Fatal("retirement failure was hidden")
+	}
+	var count int
+	if err := db.sql.QueryRow(`SELECT count(*) FROM app_state_recovery_intents`).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("failed renewal was not atomic: %d, %v", count, err)
+	}
+}
+
 func TestAppStateRecoveryIntentClearsOnlyItsOwnSuccess(t *testing.T) {
 	db := openTestDB(t)
 	failed, err := db.MarkAppStateRecoveryGeneration("regular_low")

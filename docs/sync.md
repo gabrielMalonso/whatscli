@@ -249,7 +249,7 @@ Inspect the selected account's local chat/message IDs and retain `--events` diag
 
 ## App-state summary
 
-The final human/legacy JSON summary includes `app_state`, read after App closes the session, drains known local writers and reaffirms preventive replay debt. Sync keeps its writer lock until this read-only archive snapshot and report finish. `success` and `synced` preserve the existing successful-stop contract, including cancellation and observed logout; they do not certify queue integrity, remote completeness or freshness. Existing command errors and exits are unchanged; an unavailable diagnostic read adds `reconciliation="unknown"`, `pending_collections=null` and only `error.code="recovery_state_unavailable"`, without changing the exit.
+The final human/legacy JSON summary includes `app_state`, read after App closes the session, drains known local writers and reaffirms preventive replay debt. Sync keeps its writer lock until this read-only archive snapshot and report finish. `success` and `synced` preserve the successful-stop contract for cancellation and observed logout after login; cancellation, rejection or revocation during the initial login wait fail before metadata bootstrap. They do not certify queue integrity, remote completeness or freshness. An unavailable diagnostic read adds `reconciliation="unknown"`, `pending_collections=null` and only `error.code="recovery_state_unavailable"`, without changing the exit.
 
 `reconciliation` is `required` when debt is retained, or `none_recorded` when the query succeeds without any. `pending_collections` is sorted and distinct, and is `[]` only for a successful empty query. Successful recovery and failed recovery can both end with `required`: ordinary shutdown records preventive debt for the next covered startup. Do not interpret debt alone as a recovery failure, or an empty list as a healthy/fresh mirror.
 
@@ -262,6 +262,8 @@ For example, this partial legacy `app_state` excerpt shows a successful command 
 ```
 
 The 30-second recovery step contexts are not hard wall-clock ceilings: the pinned SDK mutex and reconnect wait can outlive cancellation, and ordered local persistence is drained before database close. Budgets and SDK retries are unchanged.
+
+Sync waits for confirmed login before metadata bootstrap, including QR/phone pairing and a reopened socket. Login does not guarantee delivery of every app-state key. On an ordinary missing-key error, startup full refreshes use the existing bounded key-delivery backoff within their 30-second full-fetch window; exhausting that window retains debt without requesting a fatal phone snapshot. Integrity errors and known empty key shares keep the existing snapshot policy. A later SDK delta failure renews durable debt even when that collection's automatic recovery budget is spent. Repeated failures replace only their own failure intent, preserving other writers and preventing older checkpoints from clearing newer debt; they do not start another worker. These CLI safeguards do not establish or fix the cryptographic cause of LTHash failures.
 
 When a failure, cancellation or unconfirmed completion is known, inspect its collection, phase and code and retain them for investigation. When the read is unavailable, check local archive readability and schema compatibility. Neither case establishes the original cause of a remote LTHash mismatch.
 

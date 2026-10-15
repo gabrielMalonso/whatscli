@@ -123,8 +123,8 @@ func TestSyncKeepsRevocationAfterSocketReturnsAndLateConnected(t *testing.T) {
 		&events.Connected{},
 	}
 	a.wa = f
-	if _, err := a.Sync(t.Context(), SyncOptions{Mode: SyncModeOnce}); err != nil {
-		t.Fatalf("shipped successful-stop contract changed: %v", err)
+	if _, err := a.Sync(t.Context(), SyncOptions{Mode: SyncModeOnce}); err == nil || !strings.Contains(err.Error(), "revoked") {
+		t.Fatalf("Sync error = %v, want rejection before bootstrap", err)
 	}
 	if revoked, err := SessionRevoked(a.StoreDir()); err != nil || !revoked {
 		t.Fatalf("SessionRevoked = %v, %v; want true", revoked, err)

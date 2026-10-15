@@ -384,6 +384,12 @@ func (a *App) Sync(ctx context.Context, opts SyncOptions) (result SyncResult, sy
 }
 
 func (a *App) connectForSync(ctx context.Context, opts SyncOptions) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-a.connectGate:
+	}
+	defer func() { a.connectGate <- struct{}{} }()
 	connectOpts := wa.ConnectOptions{
 		AllowQR:                          opts.AllowQR,
 		OnQRCode:                         opts.OnQRCode,
@@ -401,9 +407,17 @@ func (a *App) connectForSync(ctx context.Context, opts SyncOptions) error {
 		attempts = maxAuthConnectAttempts
 	}
 	for attempt := 1; attempt <= attempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if err := a.sessionState.prepareConnect(a.wa.IsConnected); err != nil {
+			return err
+		}
 		err := a.wa.Connect(ctx, connectOpts)
 		if err == nil {
-			return nil
+			// PairSuccess only completes pairing. The SDK may still need to
+			// replace the socket and confirm login before bootstrap can start.
+			return a.sessionState.waitForLogin(ctx)
 		}
 		if attempt == attempts || ctx.Err() != nil || !isRetryableAuthConnectError(err) {
 			return err

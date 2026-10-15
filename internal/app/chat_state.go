@@ -276,41 +276,42 @@ func (a *App) syncChatStateBeforeWrite(ctx context.Context, collection appstate.
 func (a *App) replayRequiredAppState(ctx context.Context, collection appstate.WAPatchName, markerGeneration int64, tracker *appStatePersistenceTracker) error {
 	ctx, cancel := context.WithTimeout(ctx, appStateRecoveryMaxWait)
 	defer cancel()
+	fetchErr, persistenceErr := a.fetchFullAppStateWithKeyWait(ctx, collection, tracker)
+	if persistenceErr != nil {
+		return fmt.Errorf("persist replayed app state %s: %w", collection, persistenceErr)
+	}
+	if fetchErr == nil {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		return a.clearCompletedAppStateRecovery(collection, markerGeneration)
+	}
+	if errors.Is(fetchErr, appstate.ErrMismatchingLTHash) || errors.Is(fetchErr, wa.ErrEmptyAppStateKeyShare) {
+		return a.recoverMismatchingAppState(ctx, collection, tracker, nil)
+	}
+	return fmt.Errorf("replay WhatsApp app state recovery for %s: %w", collection, fetchErr)
+}
+
+// The SDK requests missing keys on ErrKeyNotFound. Reuse the caller's existing
+// full-fetch window for delivery, without spending the primary snapshot budget.
+func (a *App) fetchFullAppStateWithKeyWait(ctx context.Context, collection appstate.WAPatchName, tracker *appStatePersistenceTracker) (fetchErr, persistenceErr error) {
 	retryDelay := appStateRetryInitialDelay
 	for {
-		fetchErr, persistenceErr := a.fetchAndPersistAppState(ctx, collection, true, tracker)
-		if persistenceErr != nil {
-			return fmt.Errorf("persist replayed app state %s: %w", collection, persistenceErr)
+		if err := ctx.Err(); err != nil {
+			return errors.Join(fetchErr, err), nil
 		}
-		if fetchErr == nil {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			return a.clearCompletedAppStateRecovery(collection, markerGeneration)
+		fetchErr, persistenceErr = a.fetchAndPersistAppState(ctx, collection, true, tracker)
+		if persistenceErr != nil || !errors.Is(fetchErr, appstate.ErrKeyNotFound) {
+			return fetchErr, persistenceErr
 		}
-		if errors.Is(fetchErr, appstate.ErrMismatchingLTHash) || errors.Is(fetchErr, wa.ErrEmptyAppStateKeyShare) {
-			return a.recoverMismatchingAppState(ctx, collection, tracker, nil)
-		}
-		if !errors.Is(fetchErr, appstate.ErrKeyNotFound) {
-			return fmt.Errorf("replay WhatsApp app state recovery for %s: %w", collection, fetchErr)
-		}
-		// whatsmeow requests the missing keys when patch decoding returns
-		// ErrKeyNotFound. Keep the connection alive for that delivery, bounded
-		// so one absent key cannot hold all chat-state writes forever.
-
 		timer := time.NewTimer(retryDelay)
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return fmt.Errorf("wait for missing WhatsApp app state key during %s recovery: %w", collection, ctx.Err())
+			return errors.Join(fetchErr, ctx.Err()), nil
 		case <-timer.C:
 		}
-		if retryDelay < appStateRetryMaxDelay {
-			retryDelay *= 2
-			if retryDelay > appStateRetryMaxDelay {
-				retryDelay = appStateRetryMaxDelay
-			}
-		}
+		retryDelay = min(retryDelay*2, appStateRetryMaxDelay)
 	}
 }
 

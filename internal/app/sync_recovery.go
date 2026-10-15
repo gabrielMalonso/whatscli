@@ -48,6 +48,32 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 		phase = appStateRecoveryFullSync
 	}
 	recordAppStateRecovery(ctx, name, phase, evt.Error)
+	// Debt is independent of the automatic worker budget. Renew only our
+	// previous failure intent so repeated errors stay bounded, while a fetch
+	// that started earlier cannot checkpoint this newer failure away.
+	generation, err := a.db.RenewAppStateRecoveryIntent(name, a.appStateFailureIntents[name])
+	if err != nil {
+		recordAppStateRecovery(ctx, name, appStateRecoveryPrepare, err)
+		a.warnAppStateRecovery(name, err)
+		return
+	}
+	if a.appStateFailureIntents == nil {
+		a.appStateFailureIntents = make(map[string]int64)
+	}
+	a.appStateFailureIntents[name] = generation
+	if ctx.Err() != nil {
+		return
+	}
+	// Before login, foreground bootstrap will pick up this durable debt.
+	// Do not start recovery traffic or spend its budget on a pairing socket.
+	if state := a.sessionState; state != nil {
+		state.mu.Lock()
+		confirmed := state.confirmed
+		state.mu.Unlock()
+		if !confirmed {
+			return
+		}
+	}
 	if _, loaded := recoveries.LoadOrStore(name, struct{}{}); loaded {
 		return
 	}
@@ -56,16 +82,11 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 		a.emitWarning(code,
 			fmt.Sprintf("warning: app state %s %s; attempting full sync", name, reason),
 			map[string]any{"name": name})
-		a.recoverAppStateCollection(ctx, name, recoveries, appStateRecoveryStepTimeout)
+		a.recoverAppStateCollection(ctx, name, appStateRecoveryStepTimeout)
 	})
 }
 
-func (a *App) recoverAppStateCollection(ctx context.Context, name string, recoveries *sync.Map, timeout time.Duration) {
-	defer func() {
-		if ctx.Err() != nil {
-			recoveries.Delete(name)
-		}
-	}()
+func (a *App) recoverAppStateCollection(ctx context.Context, name string, timeout time.Duration) {
 	lockCtx, cancelLock := context.WithTimeout(ctx, timeout)
 	finishLock := a.measureSyncStage(lockCtx, "lock_wait", name)
 	release, err := a.acquireChatStateSync(lockCtx)
@@ -87,7 +108,7 @@ func (a *App) recoverAppStateCollection(ctx context.Context, name string, recove
 	collection := appstate.WAPatchName(name)
 	tracker := &appStatePersistenceTracker{}
 	fetchCtx, cancelFetch := context.WithTimeout(ctx, timeout)
-	fetchErr, persistenceErr := a.fetchAndPersistAppState(fetchCtx, collection, true, tracker)
+	fetchErr, persistenceErr := a.fetchFullAppStateWithKeyWait(fetchCtx, collection, tracker)
 	fetchErr = errors.Join(fetchErr, fetchCtx.Err())
 	cancelFetch()
 	recordAppStateRecovery(ctx, name, appStateRecoveryFullSync, fetchErr)
@@ -108,6 +129,12 @@ func (a *App) recoverAppStateCollection(ctx context.Context, name string, recove
 		return
 	}
 	if ctx.Err() != nil {
+		return
+	}
+	if errors.Is(fetchErr, appstate.ErrKeyNotFound) {
+		// Missing keys are requested by the SDK. Exhausting their delivery
+		// window must retain debt without escalating to a fatal snapshot.
+		a.warnAppStateRecovery(name, fetchErr)
 		return
 	}
 	a.emitWarning("app_state_full_sync_failed",
@@ -149,7 +176,7 @@ func (a *App) syncAppStateDeltas(ctx context.Context, recoveries *sync.Map) {
 	}
 	for _, name := range pending {
 		if _, loaded := recoveries.LoadOrStore(name, struct{}{}); !loaded {
-			a.recoverAppStateCollection(ctx, name, recoveries, appStateRecoveryStepTimeout)
+			a.recoverAppStateCollection(ctx, name, appStateRecoveryStepTimeout)
 		}
 	}
 	for _, name := range mirroredAppStateCollections {

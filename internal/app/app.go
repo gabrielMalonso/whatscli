@@ -147,6 +147,7 @@ type App struct {
 	appStateRecoveryWorkers sync.WaitGroup
 	appStateRecoveryMu      sync.Mutex
 	appStateRecoveryClosing bool
+	appStateFailureIntents  map[string]int64     // guarded by appStateRecoveryMu; one renewable SDK failure intent per collection
 	appStateReplayOnClose   bool                 // guarded by waMu; callbacks need not drain at Disconnect
 	appStateRecoveryOnClose *appStateRecoveryRun // guarded by waMu; closing coverage belongs to the last sync run
 	appStateUnobserved      bool                 // guarded by waMu; replay cannot retire coverage debt

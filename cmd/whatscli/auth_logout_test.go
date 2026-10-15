@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -77,6 +78,9 @@ func logoutArchiveRows(t *testing.T, dir string) map[string][][]any {
 }
 
 func TestAuthLogoutRecoversSelectedRevokedAccountAndPreservesArchive(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("named-account registry fixture uses Linux XDG isolation")
+	}
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	t.Setenv(config.EnvStoreDir, "")
 	t.Setenv("WACLI_READONLY", "0")
@@ -178,6 +182,9 @@ func TestAuthLogoutRecoversSelectedRevokedAccountAndPreservesArchive(t *testing.
 }
 
 func TestAuthLogoutRespectsReadOnlyLockAndSelection(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("named-account registry fixture uses Linux XDG isolation")
+	}
 	t.Setenv("XDG_STATE_HOME", t.TempDir())
 	t.Setenv(config.EnvStoreDir, "")
 	t.Setenv("WACLI_READONLY", "0")

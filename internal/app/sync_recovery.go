@@ -27,9 +27,6 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 	} else if !errors.Is(evt.Error, appstate.ErrMismatchingLTHash) {
 		return
 	}
-	if a.ownsManualAppStateFetch(evt.Name) {
-		return
-	}
 	name := strings.TrimSpace(string(evt.Name))
 	if name == "" {
 		return
@@ -62,6 +59,12 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 	}
 	a.appStateFailureIntents[name] = generation
 	if ctx.Err() != nil {
+		return
+	}
+	// A callback can belong to an independent SDK fetch while our fetch is
+	// still returning. Retain it conservatively, but never fetch recursively
+	// from a callback under the SDK lock or admit a second recovery worker.
+	if a.ownsManualAppStateFetch(evt.Name) {
 		return
 	}
 	// Before login, foreground bootstrap will pick up this durable debt.

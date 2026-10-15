@@ -175,6 +175,28 @@ func TestAppStateManualFetchErrorKeepsItsOwnDebt(t *testing.T) {
 	}
 }
 
+func TestAppStateErrorDuringManualFetchCannotBeCheckpointed(t *testing.T) {
+	a := newTestApp(t)
+	var budget sync.Map
+	f := &appStateContextWA{fakeWA: newFakeWA()}
+	f.fetchEvents = func(ctx context.Context, name string, _, _ bool) ([]any, error) {
+		// SDK callbacks do not identify which fetch produced the error. Even
+		// if our own fetch succeeds, it cannot dismiss this observed failure.
+		a.handleAppStateSyncError(ctx, &events.AppStateSyncError{Name: appstate.WAPatchName(name), Error: appstate.ErrMismatchingLTHash}, &budget)
+		return nil, nil
+	}
+	a.wa = f
+	if err := a.syncAndPersistAppStateDelta(t.Context(), appstate.WAPatchRegularLow, false); err == nil {
+		t.Fatal("manual fetch checkpoint dismissed an uncorrelated SDK failure")
+	}
+	if _, started := budget.Load("regular_low"); started {
+		t.Fatal("manual callback admitted another worker")
+	}
+	if required, err := a.db.AppStateRecoveryRequired("regular_low"); err != nil || !required {
+		t.Fatalf("manual checkpoint cleared observed failure: %v, %v", required, err)
+	}
+}
+
 func TestStartupFullFetchWaitsForMissingKeysWithinBudget(t *testing.T) {
 	for _, outcome := range []string{"delivered", "deadline", "cancelled", "mismatch"} {
 		t.Run(outcome, func(t *testing.T) {

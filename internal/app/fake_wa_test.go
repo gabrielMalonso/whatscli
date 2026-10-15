@@ -1067,6 +1067,10 @@ func (f *fakeWA) Logout(ctx context.Context) error {
 	return nil
 }
 
+func (f *fakeWA) DeleteSession(ctx context.Context) error {
+	return f.Logout(ctx)
+}
+
 func (f *fakeWA) SetProfilePicture(ctx context.Context, avatar []byte) (string, error) {
 	return "pic-id-fake", nil
 }

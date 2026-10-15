@@ -22,10 +22,9 @@ import (
 )
 
 // loggedOutRecoveryHint is the operator-facing recovery sequence for a revoked
-// session. sync deliberately keeps the local device record (see the LoggedOut
-// case), and `auth --phone` short-circuits while that record exists — so
-// re-pairing needs the explicit local logout first.
-const loggedOutRecoveryHint = "To re-authenticate, run `whatscli auth logout` to clear the local session, then `whatscli auth --phone` to pair again."
+// session. A retained SDK device record prevents pairing; logout clears it
+// locally when remote revocation has already been recorded.
+const loggedOutRecoveryHint = "To re-authenticate, run `whatscli auth logout` to clear the revoked local session, then `whatscli auth` to pair again (or `whatscli auth --phone PHONE`). Use the same explicit account/store selection for both commands."
 
 func newMediaEnqueuer(ctx context.Context, queue *mediaQueue) func(chatJID, msgID string) {
 	return func(chatJID, msgID string) {

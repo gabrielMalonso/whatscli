@@ -482,6 +482,29 @@ func (c *Client) Logout(ctx context.Context) error {
 	return cli.Logout(ctx)
 }
 
+// DeleteSession removes only the local SDK device and its session-specific data.
+// The caller must hold the store lock and have evidence of remote revocation.
+// Reopen the client before pairing: Device.Delete leaves this device unusable.
+func (c *Client) DeleteSession(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	c.mu.Lock()
+	cli := c.client
+	c.mu.Unlock()
+	if cli == nil || cli.Store == nil {
+		return fmt.Errorf("not initialized")
+	}
+	cli.Disconnect()
+	if cli.Store.ID == nil {
+		return nil
+	}
+	if err := cli.Store.Delete(ctx); err != nil {
+		return fmt.Errorf("delete local WhatsApp session: %w", err)
+	}
+	return nil
+}
+
 // Reconnect loop helper.
 func (c *Client) ReconnectWithBackoff(ctx context.Context, minDelay, maxDelay time.Duration, opts ConnectOptions) error {
 	opts.AllowQR = false

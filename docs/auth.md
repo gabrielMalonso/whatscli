@@ -27,8 +27,20 @@ whatscli --account work auth status
 - `auth status` reads the existing session read-only by default and creates no store, session, or writer lock. A missing session reports unauthenticated. It reports whether the local store is authenticated. A recorded remote logout overrides a stale device row until WhatsApp confirms a new login.
 - `auth status` and offline `doctor` use normal SQLite readonly locking. WAL/SHM bookkeeping may be created or updated even when the session starts without sidecars; required permission failures are not retried as immutable reads. See [store readonly access](store.md#local-reads-by-default) for the no-create and live-read limits.
 - Legacy offline `doctor` keeps diagnostic exit 0 and reports an unreadable auth source in `store_error`. Its existing `authenticated=false` alongside that auth-source error does not prove logout or loss of authentication; `linked_jid` is omitted. Known auth/JID data is retained when only the archive fails. An absent session remains normally unauthenticated. Agent doctor reports a sanitized error with exit 4 and no auth data on a failed read.
-- `auth logout` invalidates the linked-device session and requires writable mode.
+- `auth logout` invalidates the linked-device session and requires writable mode and the selected store's writer lock. If a remote logout is already recorded (`session_revoked=true`), it removes the retained local SDK device/session data without connecting. It preserves the account registration, archive, drafts/outbound records, receipts and change cursors/checkpoints. The revocation marker remains until WhatsApp confirms a new login; successful cleanup does not mean authenticated.
 - For multiple accounts, prefer `whatscli accounts add NAME`; it creates an isolated account store and runs the same auth/bootstrap flow.
+
+## Recover a revoked session
+
+Use the existing account explicitly for both commands:
+
+```bash
+whatscli -a work auth logout
+whatscli -a work auth
+# Or pair by phone: whatscli -a work auth --phone "+1234567890"
+```
+
+For a manual store, use the same `--store DIR` instead of `-a work`. Do not add the existing account again or delete database files. If logout first discovers a remote revocation while connecting, it reports the error and recovery guidance; rerun `auth logout` with the same selection to clean up using the recorded revocation, then run `auth`. Ordinary connection or remote logout failures do not trigger local cleanup. An absent session without recorded revocation still reports unauthenticated.
 
 ## Examples
 

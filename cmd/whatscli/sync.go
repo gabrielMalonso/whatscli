@@ -13,6 +13,7 @@ import (
 )
 
 func newSyncCmd(flags *rootFlags) *cobra.Command {
+	var regularLowFullSync bool
 	var once bool
 	var follow bool
 	var idleExit time.Duration
@@ -36,6 +37,9 @@ func newSyncCmd(flags *rootFlags) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := flags.requireWritable(); err != nil {
 				return err
+			}
+			if regularLowFullSync && os.Getenv("WHATSMEOW_REGULAR_LOW_WEB_COMPAT") != "1" {
+				return fmt.Errorf("--regular-low-full-sync requires WHATSMEOW_REGULAR_LOW_WEB_COMPAT=1")
 			}
 			storage.maxMessagesSet = cmd.Flags().Changed("max-messages")
 			maxMessages, maxDBSize, err := resolveSyncStorageLimits(storage)
@@ -107,6 +111,7 @@ func newSyncCmd(flags *rootFlags) *cobra.Command {
 			}
 
 			res, err := a.Sync(ctx, appPkg.SyncOptions{
+				RegularLowFullSync:  regularLowFullSync,
 				Mode:                mode,
 				PresenceMode:        presenceMode,
 				AllowQR:             false,
@@ -141,6 +146,7 @@ func newSyncCmd(flags *rootFlags) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().BoolVar(&regularLowFullSync, "regular-low-full-sync", false, "EXPERIMENTAL: reset only local regular_low and fetch one authenticated snapshot; requires compatibility opt-in")
 	cmd.Flags().BoolVar(&once, "once", false, "sync until idle and exit")
 	cmd.Flags().BoolVar(&follow, "follow", true, "keep syncing until Ctrl+C")
 	cmd.Flags().DurationVar(&idleExit, "idle-exit", 30*time.Second, "exit after being idle (once mode)")

@@ -55,6 +55,16 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 	if evt == nil {
 		return
 	}
+	if a.regularLowEnabled(evt.Name) {
+		a.appStateRecoveryMu.Lock()
+		defer a.appStateRecoveryMu.Unlock()
+		if !a.appStateRecoveryClosing {
+			if err := a.renewAppStateFailure(string(evt.Name)); err != nil {
+				a.warnAppStateRecovery(string(evt.Name), err)
+			}
+		}
+		return
+	}
 	code, reason := "app_state_lthash_mismatch", "hit an LTHash mismatch"
 	if errors.Is(evt.Error, wa.ErrEmptyAppStateKeyShare) {
 		code, reason = "app_state_key_unavailable", "requires a key shared without data"
@@ -119,6 +129,12 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 }
 
 func (a *App) recoverAppStateCollection(ctx context.Context, name string, timeout time.Duration) {
+	if a.regularLowEnabled(appstate.WAPatchName(name)) {
+		if err := a.syncAndPersistAppStateDelta(ctx, appstate.WAPatchRegularLow, false); err != nil {
+			a.warnAppStateRecovery(name, err)
+		}
+		return
+	}
 	lockCtx, cancelLock := context.WithTimeout(ctx, timeout)
 	finishLock := a.measureSyncStage(lockCtx, "lock_wait", name)
 	release, err := a.acquireChatStateSync(lockCtx)
@@ -244,6 +260,9 @@ func (a *App) syncAndPersistAppStateDelta(ctx context.Context, name appstate.WAP
 		return err
 	}
 	tracker := &appStatePersistenceTracker{}
+	if a.regularLowEnabled(name) {
+		return a.syncRegularLow(ctx, generation, tracker)
+	}
 	if required {
 		ctx, cancel := context.WithTimeout(ctx, appStateRecoveryStepTimeout)
 		defer cancel()

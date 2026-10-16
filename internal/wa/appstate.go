@@ -34,9 +34,18 @@ func (c *Client) SendAppState(ctx context.Context, patch appstate.PatchInfo) err
 
 func (c *Client) sendAppStateWithBoundary(ctx context.Context, patch appstate.PatchInfo, beforeApply func()) ([]any, error) {
 	// Reserve whatscli persistence before whatsmeow can advance app state. The
-	// durable recovery intent remains after return because canonical sends
-	// dispatch their resulting events asynchronously.
+	// durable recovery intent remains after return. Canonical sends dispatch
+	// asynchronously; opt-in regular_low returns its exact events to this ticket.
 	beforeApply()
+	if patch.Type == appstate.WAPatchRegularLow && c.RegularLowPolicyStatus().Enabled {
+		c.mu.Lock()
+		cli := c.client
+		c.mu.Unlock()
+		if cli == nil || !cli.IsConnected() {
+			return nil, fmt.Errorf("not connected")
+		}
+		return cli.SendRegularLowStateEvents(ctx, patch)
+	}
 	return nil, c.SendAppState(ctx, patch)
 }
 

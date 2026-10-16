@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Experimental chat state: opt in at client construction with `WHATSMEOW_REGULAR_LOW_WEB_COMPAT=1` and explicitly anchor each owner using `sync --regular-low-full-sync`. Report degraded regular_low status separately from readiness; mirror exact authenticated returned archive/pin/read fields through existing tickets/debt fences. Read/unread uses a locally verified frozen LID index with the original stored PN message range and bounded mirror. Default/other collections stay strict; no automatic reset, network alias fallback or uncertain-action replay. Offline regression validation; SDK release pin and real-account validation remain separate integration steps.
+
 - Sync/auth: wait for confirmed login before metadata bootstrap while preserving transport cleanup on failed login waits, retain bounded key-delivery waits within the existing full-fetch budget, and renew durable app-state debt on later failures even after the automatic recovery budget is spent. Preserve generation fencing, other writers' intents and conservative ACK/completion handling; failed marker writes fence older checkpoints and dependent mutations until a later durable replay. Offline fixtures only; this does not establish or cure the cryptographic cause of LTHash failures.
 
 - Auth: recover a recorded revoked session with `auth logout` without connecting the invalid device. Preserve the existing account, history, drafts/outbound evidence and change checkpoints; retain revocation evidence until a confirmed new login. Keep normal remote logout, readonly and writer locks.

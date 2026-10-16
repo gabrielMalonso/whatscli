@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 
 	"github.com/gabrielMalonso/whatscli/internal/sqliteutil"
 	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types/events"
 )
@@ -44,7 +46,14 @@ func (c *Client) init() (err error) {
 	}
 
 	logger := newWhatsmeowLogger("Client", "ERROR", c.diagnosticWriter())
-	c.client = whatsmeow.NewClient(deviceStore, logger)
+	if os.Getenv("WHATSMEOW_REGULAR_LOW_WEB_COMPAT") == "1" {
+		c.client, err = whatsmeow.NewClientWithRegularLowPolicy(deviceStore, logger, appstate.PatchSnapshotAllowMismatch)
+		if err != nil {
+			return err
+		}
+	} else {
+		c.client = whatsmeow.NewClient(deviceStore, logger)
+	}
 	// FetchAppStateEvents fails closed without this: recovery snapshots must
 	// return every mutation so whatscli can rebuild its own database.
 	c.client.EmitAppStateEventsOnFullSync = true

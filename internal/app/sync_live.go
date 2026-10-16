@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
@@ -25,6 +26,7 @@ const (
 
 // SyncLiveStatus is an in-memory snapshot of the existing owner.
 type SyncLiveStatus struct {
+	RegularLowPolicy   *whatsmeow.RegularLowPolicyStatus `json:"regular_low_policy,omitempty"`
 	revision           uint64
 	OwnerRunID         string                  `json:"owner_run_id,omitempty"`
 	SendInitialized    bool                    `json:"send_initialized"`
@@ -172,6 +174,13 @@ func (a *App) syncLiveSnapshot() SyncLiveStatus {
 		linkedJID, linkedLID = client.LinkedJID(), client.LinkedLID()
 		transportConnected = client.IsConnected()
 	}
+	var regularLow *whatsmeow.RegularLowPolicyStatus
+	if policy, ok := client.(regularLowPolicyClient); ok {
+		status := policy.RegularLowPolicyStatus()
+		if status.Enabled {
+			regularLow = &status
+		}
+	}
 	a.live.mu.Lock()
 	defer a.live.mu.Unlock()
 	if a.live.ctx != nil && a.live.ctx.Err() != nil && !a.live.terminal() {
@@ -188,8 +197,9 @@ func (a *App) syncLiveSnapshot() SyncLiveStatus {
 		revision = a.live.revision
 	}
 	v := SyncLiveStatus{
-		revision:   a.live.revision,
-		OwnerRunID: a.live.runID, SendInitialized: a.live.sendInitialized && !a.live.terminal() && !closed,
+		RegularLowPolicy: regularLow,
+		revision:         a.live.revision,
+		OwnerRunID:       a.live.runID, SendInitialized: a.live.sendInitialized && !a.live.terminal() && !closed,
 		State: a.live.state, Initialized: a.live.initialized,
 		OwnerReady: a.live.initialized && !a.live.terminal() && !closed,
 		Connected:  "unknown", TransportConnected: "unknown", Authenticated: "unknown",
@@ -204,7 +214,7 @@ func (a *App) syncLiveSnapshot() SyncLiveStatus {
 	}
 	if revision != a.live.revision {
 		// Do not combine an old transport/identity read with newer event evidence.
-		v.LinkedJID, v.LinkedLID = "", ""
+		v.LinkedJID, v.LinkedLID, v.RegularLowPolicy = "", "", nil
 		if a.live.connected {
 			if !a.live.terminal() && !closed {
 				v.State = SyncLiveUnknown

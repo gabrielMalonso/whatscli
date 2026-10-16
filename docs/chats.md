@@ -40,6 +40,37 @@ No OFFSET, schema or index is added. SQL returns limit+1 rows to Go, but SQLite 
 
 ## Notes
 
+### Experimental compatibility
+
+The opt-in [regular_low mode](sync.md#experimental-regular_low-compatibility)
+requires an explicitly anchored, running follow owner. Archive projection writes
+only observed fields and never infers unpin; `archive` itself still requires a
+known returned unpin. Unknown fields preserve previous SQLite values. If PN/LID
+archive/pin observations map to one row and disagree, only the conflicting field
+stays unknown; neither event order nor timestamp chooses a winner. Independent
+callbacks check an existing locally verified alias for the same conflict.
+
+For read/unread of a user PN, the mode freezes Requested/StorePN/WireLID and the
+connected account using only `LookupLocalAlias` plus both local pair directions.
+The Device's own known pair is accepted only without local contradiction. Missing,
+failed or contradictory PN mappings refuse before the delta/mutation, with no
+network identity discovery. An explicit unpaired LID stays that LID; groups retain
+their identity policy. Binding is rechecked before send and mirror. A changed
+pair/account after IQ leaves an unknown outcome and debt, without replaying the
+action or mirroring under the new identity. These reads and SQLite writes are
+not an atomic identity transaction.
+
+Only the mutation index/echo uses WireLID. The original stored MessageKey,
+RemoteJID, Participant and message range remain exact; mark-read requires the
+same returned range and clears only through that boundary. This path sends no
+read receipts and performs no unbounded clear. A PN read shadow cannot override
+the canonical LID field by event order. Missing/ambiguous passive LID projection
+leaves unread unknown and SQLite unchanged, without inventing global debt or a
+chat rebuild. SDK confirmation uses authenticated records; `ActionState`
+Success/Orphan is not a confirmation gate.
+
+### General behavior
+
 - `list` is local and sorted by pinned chats first, then newest known message timestamp. Legacy display resolution keeps that priority after PN/LID rows are fused; equal pin/activity keys retain their incoming order. Fusion continues to retain the first row's pin/archive/mute flags and the newest activity, without inferring remote state.
 - WhatsApp system events, such as a changed security code or a group notice, arrive as payloads with no content and are stored as `(message)` rows. They do not set that timestamp, so they cannot move a chat up the list; a chat that holds nothing else has no timestamp and sorts last.
 - On the next writable open, activity matching the newest locally stored message is recomputed from stored content. Activity newer than every local message is preserved. If an unstored message advertised by history has the exact same second as a local placeholder, the repair uses local content; syncing that message restores its activity.

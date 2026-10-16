@@ -250,7 +250,7 @@ func (a *App) SyncLiveSnapshot() SyncLiveStatus {
 		v.OwnerReady, v.SendInitialized, v.Initialized = false, false, false
 		v.State, v.TransportConnected = SyncLiveUnknown, "unknown"
 		v.OwnerRunID, v.LinkedJID, v.LinkedLID = "", "", ""
-		v.Observations, v.Stages = nil, nil
+		v.Observations, v.Stages, v.RegularLowPolicy = nil, nil, nil
 		v.AppState.RecoveryObservations = nil
 		if terminal {
 			// Drop stale evidence without erasing the current terminal lifecycle.

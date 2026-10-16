@@ -11,6 +11,7 @@ import (
 
 	"github.com/gabrielMalonso/whatscli/internal/store"
 	"github.com/gabrielMalonso/whatscli/internal/wa"
+	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waSyncAction"
@@ -67,55 +68,106 @@ func (a *App) AddChatStatePersistenceHandler(ctx context.Context) (func(), error
 }
 
 func (a *App) ArchiveChat(ctx context.Context, jid types.JID, archive bool) error {
+	if a.ReadOnly() {
+		return fmt.Errorf("read-only mode: cannot update chat state")
+	}
+	binding, err := a.prepareRegularLowChat(ctx, jid)
+	if err != nil {
+		return err
+	}
 	release, err := a.beginChatStateWrite(ctx, appstate.WAPatchRegularLow)
 	if err != nil {
 		return err
 	}
 	defer release()
-	chatJID := canonicalJIDString(a.canonicalStoreJID(ctx, jid))
-	_, _, err = a.archiveChatResolved(ctx, jid, chatJID, archive, nil)
+	var chatJID string
+	if binding != nil {
+		chatJID = binding.Store.String()
+	} else {
+		chatJID = canonicalJIDString(a.canonicalStoreJID(ctx, jid))
+	}
+	_, _, err = a.archiveChatResolved(ctx, jid, chatJID, archive, nil, binding)
 	return err
 }
 
 // Resolved helpers run under beginChatStateWrite. The legacy wrappers retain
 // their resolver; agent actions supply one frozen strict observation instead.
-func (a *App) archiveChatResolved(ctx context.Context, jid types.JID, chatJID string, archive bool, beforeSend func() error) (ChatStateOutcome, ChatStateMirror, error) {
+func (a *App) archiveChatResolved(ctx context.Context, jid types.JID, chatJID string, archive bool, beforeSend func() error, binding *regularLowChatBinding) (ChatStateOutcome, ChatStateMirror, error) {
+	wire := jid
+	if binding != nil {
+		chatJID, wire = binding.Store.String(), binding.Wire
+	}
 	return a.applyLocalChatStateWrite(ctx, beforeSend, func(boundary func()) ([]any, error) {
-		return a.wa.ArchiveChat(ctx, jid, archive, nowUTC(), nil, boundary)
-	}, func() error {
+		return a.wa.ArchiveChat(ctx, wire, archive, nowUTC(), nil, boundary)
+	}, func(returned []any) error {
+		if a.regularLowEnabled(appstate.WAPatchRegularLow) || binding != nil {
+			if binding != nil {
+				if err := binding.revalidate(context.WithoutCancel(ctx), a); err != nil {
+					return err
+				}
+			}
+			p, err := a.returnedRegularLowFlags(context.WithoutCancel(ctx), chatJID, wire, returned, binding)
+			if err != nil {
+				return err
+			}
+			if !p.ArchiveKnown || p.Archived != archive || archive && (!p.PinKnown || p.Pinned) {
+				return whatsmeow.ErrRegularLowProjectionUnknown
+			}
+			return a.persistRegularLowFlags(chatJID, p)
+		}
 		settings, err := a.currentChatSettings(context.WithoutCancel(ctx), jid)
 		if err != nil {
 			return err
 		}
 		return a.persistCachedChatFlags(chatJID, settings)
-	})
+	}, binding)
 }
 
 func (a *App) PinChat(ctx context.Context, jid types.JID, pin bool) error {
+	if a.ReadOnly() {
+		return fmt.Errorf("read-only mode: cannot update chat state")
+	}
+	binding, err := a.prepareRegularLowChat(ctx, jid)
+	if err != nil {
+		return err
+	}
 	release, err := a.beginChatStateWrite(ctx, appstate.WAPatchRegularLow)
 	if err != nil {
 		return err
 	}
 	defer release()
-	chatJID := canonicalJIDString(a.canonicalStoreJID(ctx, jid))
-	pending, err := a.beginLocalAppStateWrite(appstate.WAPatchRegularLow)
-	if err != nil {
-		return err
+	wire := jid
+	var chatJID string
+	if binding != nil {
+		chatJID, wire = binding.Store.String(), binding.Wire
+	} else {
+		chatJID = canonicalJIDString(a.canonicalStoreJID(ctx, jid))
 	}
-	postSendEvents, err := a.wa.PinChat(ctx, jid, pin, func() { pending.reserve(a) })
-	if err != nil {
-		return errors.Join(err, a.failLocalAppStateWrite(ctx, &pending, postSendEvents))
-	}
-	if !pending.reserved {
-		return fmt.Errorf("WhatsApp app state send completed without an apply boundary")
-	}
-	return a.completeLocalAppStateWrite(ctx, &pending, postSendEvents, func() error {
+	_, _, err = a.applyLocalChatStateWrite(ctx, nil, func(boundary func()) ([]any, error) {
+		return a.wa.PinChat(ctx, wire, pin, boundary)
+	}, func(returned []any) error {
+		if a.regularLowEnabled(appstate.WAPatchRegularLow) || binding != nil {
+			if binding != nil {
+				if err := binding.revalidate(context.WithoutCancel(ctx), a); err != nil {
+					return err
+				}
+			}
+			p, err := a.returnedRegularLowFlags(context.WithoutCancel(ctx), chatJID, wire, returned, binding)
+			if err != nil {
+				return err
+			}
+			if !p.PinKnown || p.Pinned != pin {
+				return whatsmeow.ErrRegularLowProjectionUnknown
+			}
+			return a.persistRegularLowFlags(chatJID, p)
+		}
 		settings, err := a.currentChatSettings(context.WithoutCancel(ctx), jid)
 		if err != nil {
 			return err
 		}
 		return a.persistCachedChatFlags(chatJID, settings)
-	})
+	}, binding)
+	return err
 }
 
 func (a *App) MuteChat(ctx context.Context, jid types.JID, mute bool, duration time.Duration) error {
@@ -143,17 +195,33 @@ func (a *App) MuteChat(ctx context.Context, jid types.JID, mute bool, duration t
 }
 
 func (a *App) MarkChatRead(ctx context.Context, jid types.JID, read bool) error {
+	if a.ReadOnly() {
+		return fmt.Errorf("read-only mode: cannot update chat state")
+	}
+	binding, err := a.prepareRegularLowChat(ctx, jid)
+	if err != nil {
+		return err
+	}
 	release, err := a.beginChatStateWrite(ctx, appstate.WAPatchRegularLow)
 	if err != nil {
 		return err
 	}
 	defer release()
-	chatJID := canonicalJIDString(a.canonicalStoreJID(ctx, jid))
-	_, _, err = a.markChatReadResolved(ctx, jid, chatJID, read, nil)
+	var chatJID string
+	if binding != nil {
+		chatJID = binding.Store.String()
+	} else {
+		chatJID = canonicalJIDString(a.canonicalStoreJID(ctx, jid))
+	}
+	_, _, err = a.markChatReadResolved(ctx, jid, chatJID, read, nil, binding)
 	return err
 }
 
-func (a *App) markChatReadResolved(ctx context.Context, jid types.JID, chatJID string, read bool, beforeSend func() error) (ChatStateOutcome, ChatStateMirror, error) {
+func (a *App) markChatReadResolved(ctx context.Context, jid types.JID, chatJID string, read bool, beforeSend func() error, binding *regularLowChatBinding) (ChatStateOutcome, ChatStateMirror, error) {
+	wire := jid
+	if binding != nil {
+		chatJID, wire = binding.Store.String(), binding.Wire
+	}
 	var lastTS time.Time
 	var lastKey *waCommon.MessageKey
 	if read {
@@ -166,8 +234,28 @@ func (a *App) markChatReadResolved(ctx context.Context, jid types.JID, chatJID s
 		lastTS, lastKey = a.latestMessageRange(chatJID)
 	}
 	return a.applyLocalChatStateWrite(ctx, beforeSend, func(boundary func()) ([]any, error) {
-		return a.wa.MarkChatAsRead(ctx, jid, read, lastTS, lastKey, boundary)
-	}, func() error {
+		return a.wa.MarkChatAsRead(ctx, wire, read, lastTS, lastKey, boundary)
+	}, func(returned []any) error {
+		if a.regularLowEnabled(appstate.WAPatchRegularLow) || binding != nil {
+			if binding != nil {
+				if err := binding.revalidate(context.WithoutCancel(ctx), a); err != nil {
+					return err
+				}
+			}
+			p, err := a.returnedRegularLowProjection(wire, returned)
+			if err != nil {
+				return err
+			}
+			if !p.ReadKnown || p.Read != read {
+				return whatsmeow.ErrRegularLowProjectionUnknown
+			}
+			if read {
+				expected := appstate.BuildMarkChatAsRead(wire, read, lastTS, lastKey).Mutations[0].Value.GetMarkChatAsReadAction().GetMessageRange()
+				if !proto.Equal(expected, p.ReadAction.GetMessageRange()) {
+					return whatsmeow.ErrRegularLowProjectionUnknown
+				}
+			}
+		}
 		if !read {
 			return a.db.SetChatUnread(chatJID, true)
 		}
@@ -176,7 +264,7 @@ func (a *App) markChatReadResolved(ctx context.Context, jid types.JID, chatJID s
 			ids = []string{lastKey.GetID()}
 		}
 		return a.db.ClearChatUnreadThrough(chatJID, lastTS, ids)
-	})
+	}, binding)
 }
 
 // Capture once: a missing or unreadable anchor must never become a clock-based
@@ -193,13 +281,19 @@ func (a *App) strictReadMessageRange(chatJID string) (time.Time, *waCommon.Messa
 	return info.Timestamp, key, nil
 }
 
-func (a *App) applyLocalChatStateWrite(ctx context.Context, beforeSend func() error, send func(func()) ([]any, error), persist func() error) (ChatStateOutcome, ChatStateMirror, error) {
+func (a *App) applyLocalChatStateWrite(ctx context.Context, beforeSend func() error, send func(func()) ([]any, error), persist func([]any) error, binding *regularLowChatBinding) (ChatStateOutcome, ChatStateMirror, error) {
 	pending, err := a.beginLocalAppStateWrite(appstate.WAPatchRegularLow)
 	if err != nil {
 		return ChatStateNotDispatched, ChatStateMirrorUnknown, err
 	}
+	pending.chatBinding = binding
 	if beforeSend != nil {
 		if err := beforeSend(); err != nil {
+			return ChatStateNotDispatched, ChatStateMirrorUnknown, err
+		}
+	}
+	if binding != nil {
+		if err := binding.revalidate(ctx, a); err != nil {
 			return ChatStateNotDispatched, ChatStateMirrorUnknown, err
 		}
 	}
@@ -207,12 +301,17 @@ func (a *App) applyLocalChatStateWrite(ctx context.Context, beforeSend func() er
 	// persistence before SDK preparation, and does not prove a frame was sent.
 	postSendEvents, err := send(func() { pending.reserve(a) })
 	if err != nil {
-		return ChatStateUncertain, ChatStateMirrorUnknown, errors.Join(err, a.failLocalAppStateWrite(ctx, &pending, postSendEvents))
+		outcome := ChatStateUncertain
+		var preflight *whatsmeow.RegularLowSendPreflightError
+		if a.regularLowEnabled(appstate.WAPatchRegularLow) && errors.As(err, &preflight) {
+			outcome = ChatStateNotDispatched
+		}
+		return outcome, ChatStateMirrorUnknown, errors.Join(err, a.failLocalAppStateWrite(ctx, &pending, postSendEvents))
 	}
 	if !pending.reserved {
 		return ChatStateSDKCompleted, ChatStateMirrorUnconfirmed, fmt.Errorf("WhatsApp app state send completed without an apply boundary")
 	}
-	if err := a.completeLocalAppStateWrite(ctx, &pending, postSendEvents, persist); err != nil {
+	if err := a.completeLocalAppStateWrite(ctx, &pending, postSendEvents, func() error { return persist(postSendEvents) }); err != nil {
 		return ChatStateSDKCompleted, ChatStateMirrorUnconfirmed, err
 	}
 	return ChatStateSDKCompleted, ChatStateMirrorPersisted, nil
@@ -233,6 +332,9 @@ func (a *App) acquireChatStateSync(ctx context.Context) (func(), error) {
 }
 
 func (a *App) beginChatStateWrite(ctx context.Context, collection appstate.WAPatchName) (func(), error) {
+	if a.ReadOnly() {
+		return nil, fmt.Errorf("read-only mode: cannot update chat state")
+	}
 	release, err := a.acquireChatStateSync(ctx)
 	if err != nil {
 		return nil, err
@@ -250,6 +352,9 @@ func (a *App) syncChatStateBeforeWrite(ctx context.Context, collection appstate.
 		return fmt.Errorf("begin WhatsApp app state recovery for %s: %w", collection, err)
 	}
 	tracker := &appStatePersistenceTracker{}
+	if a.regularLowEnabled(collection) {
+		return a.syncRegularLow(ctx, markerGeneration, tracker)
+	}
 	if recoveryRequired {
 		return a.replayRequiredAppState(ctx, collection, markerGeneration, tracker)
 	}
@@ -278,6 +383,9 @@ func (a *App) syncChatStateBeforeWrite(ctx context.Context, collection appstate.
 }
 
 func (a *App) replayRequiredAppState(ctx context.Context, collection appstate.WAPatchName, markerGeneration int64, tracker *appStatePersistenceTracker) error {
+	if a.regularLowEnabled(collection) {
+		return a.syncRegularLow(ctx, markerGeneration, tracker)
+	}
 	ctx, cancel := context.WithTimeout(ctx, appStateRecoveryMaxWait)
 	defer cancel()
 	fetchErr, persistenceErr := a.fetchFullAppStateWithKeyWait(ctx, collection, tracker)
@@ -320,6 +428,9 @@ func (a *App) fetchFullAppStateWithKeyWait(ctx context.Context, collection appst
 }
 
 func (a *App) recoverMismatchingAppState(ctx context.Context, collection appstate.WAPatchName, tracker *appStatePersistenceTracker, onRequested func(types.MessageID)) (recoveryErr error) {
+	if a.regularLowEnabled(collection) {
+		return whatsmeow.ErrRegularLowSessionInvalid
+	}
 	finish := a.measureSyncStage(ctx, "snapshot", string(collection))
 	defer func() { finish(recoveryErr) }()
 	ticket := a.appStatePersist.reserve()
@@ -329,7 +440,7 @@ func (a *App) recoverMismatchingAppState(ctx context.Context, collection appstat
 	frontier := a.appStatePersist.complete(ticket, func() {
 		// These are real SDK events, irrespective of which request produced them.
 		// Persist them on every outcome, including standalone calls without a global handler.
-		result <- a.persistFetchedAppStateEvents(persistCtx, eventsToPersist, tracker)
+		result <- a.persistFetchedAppStateEvents(persistCtx, collection, eventsToPersist, tracker, nil)
 	})
 	if err := a.appStatePersist.waitThrough(persistCtx, frontier); err != nil {
 		return errors.Join(recoveryErr, err)
@@ -393,7 +504,7 @@ func (a *App) fetchAndPersistAppState(ctx context.Context, collection appstate.W
 	}()
 	result := make(chan error, 1)
 	frontier := a.appStatePersist.complete(ticket, func() {
-		result <- a.persistFetchedAppStateEvents(ctx, eventsToPersist, tracker)
+		result <- a.persistFetchedAppStateEvents(ctx, collection, eventsToPersist, tracker, nil)
 	})
 	if waitErr := a.appStatePersist.waitThrough(ctx, frontier); waitErr != nil {
 		return fetchErr, waitErr
@@ -455,11 +566,12 @@ func (a *App) clearCompletedAppStateRecovery(collection appstate.WAPatchName, ma
 }
 
 type pendingLocalAppStateWrite struct {
-	collection appstate.WAPatchName
-	generation int64
-	once       sync.Once
-	ticket     uint64
-	reserved   bool
+	collection  appstate.WAPatchName
+	generation  int64
+	once        sync.Once
+	ticket      uint64
+	reserved    bool
+	chatBinding *regularLowChatBinding
 }
 
 func (p *pendingLocalAppStateWrite) reserve(a *App) {
@@ -474,7 +586,7 @@ func (a *App) beginLocalAppStateWrite(collection appstate.WAPatchName) (pendingL
 	if err != nil {
 		return pendingLocalAppStateWrite{}, fmt.Errorf("mark local WhatsApp app state recovery for %s: %w", collection, err)
 	}
-	// Keep this exact intent until a later pre-write replay. Other queued work
+	// Keep this intent until a later covered pre-write sync. Other queued work
 	// clears only its own generation and cannot erase an unfinished send.
 	return pendingLocalAppStateWrite{collection: collection, generation: generation}, nil
 }
@@ -487,7 +599,7 @@ func (a *App) failLocalAppStateWrite(ctx context.Context, pending *pendingLocalA
 	persistCtx := context.WithoutCancel(ctx)
 	frontier := a.appStatePersist.complete(pending.ticket, func() {
 		tracker := &appStatePersistenceTracker{}
-		result <- a.persistFetchedAppStateEvents(persistCtx, postSendEvents, tracker)
+		result <- a.persistFetchedAppStateEvents(persistCtx, pending.collection, postSendEvents, tracker, pending.chatBinding)
 	})
 	if err := a.appStatePersist.waitThrough(persistCtx, frontier); err != nil {
 		return err
@@ -501,7 +613,12 @@ func (a *App) completeLocalAppStateWrite(ctx context.Context, pending *pendingLo
 	frontier := a.appStatePersist.complete(pending.ticket, func() {
 		localErr := persist()
 		tracker := &appStatePersistenceTracker{}
-		eventsErr := a.persistFetchedAppStateEvents(persistCtx, postSendEvents, tracker)
+		var eventsErr error
+		// A refused owned result must not bypass confirmation through the
+		// generic mirror (for example a changed pair or mismatched read range).
+		if localErr == nil || !a.regularLowEnabled(pending.collection) && !errors.Is(localErr, errRegularLowChatIdentity) {
+			eventsErr = a.persistFetchedAppStateEvents(persistCtx, pending.collection, postSendEvents, tracker, pending.chatBinding)
+		}
 		persistErr := localErr
 		if persistErr == nil {
 			persistErr = eventsErr
@@ -512,12 +629,24 @@ func (a *App) completeLocalAppStateWrite(ctx context.Context, pending *pendingLo
 		return err
 	}
 	// Another whatsmeow fetch can advance the cursor and dispatch later. Keep
-	// replay debt durable until the next pre-write full replay.
-	return <-result
+	// replay debt durable until the next covered pre-write synchronization.
+	err := <-result
+	if err != nil && a.regularLowEnabled(pending.collection) {
+		a.invalidateRegularLow()
+	}
+	return err
 }
 
-func (a *App) persistFetchedAppStateEvents(ctx context.Context, eventsToPersist []any, tracker *appStatePersistenceTracker) error {
+func (a *App) persistFetchedAppStateEvents(ctx context.Context, collection appstate.WAPatchName, eventsToPersist []any, tracker *appStatePersistenceTracker, binding *regularLowChatBinding) error {
 	tracker.begin()
+	if binding != nil && !a.regularLowEnabled(collection) {
+		tracker.record(errRegularLowChatIdentity)
+		return tracker.end()
+	}
+	if a.regularLowEnabled(collection) {
+		tracker.record(a.persistReturnedRegularLow(ctx, eventsToPersist, binding))
+		return tracker.end()
+	}
 	for _, evt := range eventsToPersist {
 		a.handleAppStatePersistenceEvent(ctx, evt, tracker)
 	}
@@ -581,6 +710,12 @@ func (a *App) persistCachedChatFlags(chatJID string, settings types.LocalChatSet
 }
 
 func (a *App) handleChatStateEvent(ctx context.Context, evt any) error {
+	if a.regularLowEnabled(appstate.WAPatchRegularLow) {
+		switch evt.(type) {
+		case *events.Archive, *events.Pin, *events.MarkChatAsRead:
+			return a.persistLiveRegularLow(ctx, evt)
+		}
+	}
 	switch v := evt.(type) {
 	case *events.Archive:
 		if v == nil || v.JID.IsEmpty() || v.Action == nil {

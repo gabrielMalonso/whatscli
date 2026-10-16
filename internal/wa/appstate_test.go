@@ -45,3 +45,26 @@ func TestChatSettingsCacheExactJIDAndLifetime(t *testing.T) {
 		t.Fatal("closed SDK invented settings")
 	}
 }
+
+func TestRegularLowPolicyCapturedBeforeConnect(t *testing.T) {
+	for _, optIn := range []string{"", "1"} {
+		t.Run("env="+optIn, func(t *testing.T) {
+			t.Setenv("WHATSMEOW_REGULAR_LOW_WEB_COMPAT", optIn)
+			c, err := New(Options{StorePath: newPairedSessionStore(t)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer c.Close()
+			// Changing the environment cannot change a constructed client's policy.
+			if optIn == "1" {
+				t.Setenv("WHATSMEOW_REGULAR_LOW_WEB_COMPAT", "")
+			} else {
+				t.Setenv("WHATSMEOW_REGULAR_LOW_WEB_COMPAT", "1")
+			}
+			status := c.RegularLowPolicyStatus()
+			if status.Enabled != (optIn == "1") || status.Anchored || status.Valid || status.FetchComplete || c.IsConnected() {
+				t.Fatalf("implicit anchor/connection or mutable opt-in: %+v", status)
+			}
+		})
+	}
+}

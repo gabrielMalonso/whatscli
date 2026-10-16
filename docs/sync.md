@@ -10,6 +10,37 @@ Startup repairs historical LID identities using indexed message lookups without 
 
 Remote logout stops sync and emits `logged_out`; it retains the existing successful-stop exit status. `auth status` and `doctor` remember the observed revocation until a confirmed login.
 
+## Experimental regular_low compatibility
+
+`WHATSMEOW_REGULAR_LOW_WEB_COMPAT=1` opts in when the SDK client is constructed,
+before Connect; changing the environment later cannot change that client. Each
+new owner session requires an explicitly authorized startup with
+`sync --regular-low-full-sync`. This flag performs one native local `regular_low`
+cursor/map reset and authenticated snapshot fetch before metadata startup. It is
+refused without the opt-in or in read-only mode. Neither opt-in alone, stored
+cursor, restart, collection debt nor a failed fetch triggers a reset or primary
+recovery. Reuse this same follow owner for subsequent chat actions; a standalone
+client has no in-memory anchor. Default mode and other collections remain strict.
+
+Compatibility tolerates only patch aggregate SnapshotMAC divergence after a
+strict snapshot anchor; record/decryption/index/PatchMAC validation stays in the
+SDK. Optional `regular_low_policy` in `sync status` JSON reports `enabled`,
+`anchored`, `valid`, `fetch_complete`, sticky `degraded`, `version` and
+`snapshot_mac_mismatches`. These describe this local session, separately from
+authentication, owner readiness, collection debt and archive/history completeness.
+`fetch_complete` covers SDK pages/store/projection, not SQLite persistence or
+remote freshness; after failure, `version` is the last completed observation,
+even if native stores partially advanced. A regular_low action refuses an
+invalid/unanchored session before mutation; execution requires a completed delta
+and the existing generation/debt fences. Other operation admission is unchanged.
+
+Only known current archive/pin/read fields are mirrored. An owned fetch/send
+uses its exact authenticated returned result under the existing persistence
+ticket, even if a later notification makes the public getter incomplete.
+Independent callbacks use that getter's invalid/incomplete masks. Failures retain
+debt; effects already applied in SDK/SQLite are not rolled back. There is no
+automatic retry of an uncertain action. See [chat-state limits](chats.md#experimental-compatibility).
+
 ## Live owner readiness
 
 ```bash

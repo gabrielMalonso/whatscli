@@ -14,6 +14,7 @@ import (
 
 	"github.com/gabrielMalonso/whatscli/internal/store"
 	"github.com/gabrielMalonso/whatscli/internal/wa"
+	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/proto/waHistorySync"
@@ -403,6 +404,15 @@ func (a *App) persistAppStateEvent(ctx context.Context, evt any, tracker *appSta
 		err = a.handleDeleteForMeEvent(ctx, v)
 	case *events.Archive, *events.Pin, *events.Mute, *events.MarkChatAsRead:
 		err = a.handleChatStateEvent(ctx, v)
+	}
+	// Masked callbacks retain debt without invalidating an otherwise usable anchor.
+	if err != nil && !errors.Is(err, whatsmeow.ErrRegularLowProjectionUnknown) && a.regularLowEnabled(appstate.WAPatchRegularLow) {
+		for _, name := range appStateCollectionsForEvent(evt) {
+			if name == appstate.WAPatchRegularLow {
+				a.invalidateRegularLow()
+				break
+			}
+		}
 	}
 	if tracker != nil {
 		tracker.record(err)

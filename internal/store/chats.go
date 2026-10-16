@@ -129,6 +129,12 @@ func (d *DB) SetChatPinned(jid string, pinned bool) error {
 	return d.q.SetChatPinned(storeCtx(), storedb.SetChatPinnedParams{Jid: jid, Pinned: boolToInt64(pinned)})
 }
 
+// SetChatArchivedProjection mirrors only the observed field, without the
+// archive command's implicit unpin.
+func (d *DB) SetChatArchivedProjection(jid string, archived bool) error {
+	return d.q.SetChatArchived(storeCtx(), storedb.SetChatArchivedParams{Jid: jid, Archived: boolToInt64(archived)})
+}
+
 func (d *DB) SetChatMutedUntil(jid string, mutedUntil int64) error {
 	return d.q.SetChatMutedUntil(storeCtx(), storedb.SetChatMutedUntilParams{Jid: jid, MutedUntil: mutedUntil})
 }

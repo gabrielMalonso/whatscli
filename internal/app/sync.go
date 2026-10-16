@@ -57,6 +57,7 @@ func (m SyncPresenceMode) SendsAvailablePresence() bool {
 }
 
 type SyncOptions struct {
+	RegularLowFullSync  bool // Explicit native regular_low reset and snapshot, once before metadata.
 	Mode                SyncMode
 	PresenceMode        SyncPresenceMode
 	AllowQR             bool
@@ -176,6 +177,9 @@ func (a *App) Sync(ctx context.Context, opts SyncOptions) (result SyncResult, sy
 	if err := a.OpenWA(); err != nil {
 		return SyncResult{}, err
 	}
+	if err := a.validateRegularLowStartup(opts.RegularLowFullSync); err != nil {
+		return SyncResult{}, err
+	}
 	run.diagnostic.updateSync(func(s *SyncObservation) {
 		run.diagnostic.connectionRun = a.sessionState.diagnostic
 		s.ConnectionExecutionID = a.sessionState.diagnostic.connection.ExecutionID
@@ -292,6 +296,11 @@ func (a *App) Sync(ctx context.Context, opts SyncOptions) (result SyncResult, sy
 	}
 	now = nowUTC().UnixNano()
 	lastEvent.Store(now)
+	if opts.RegularLowFullSync {
+		if err := a.startRegularLowAnchor(syncCtx); err != nil {
+			return SyncResult{}, err
+		}
+	}
 	finishMigration := a.measureSyncStage(syncCtx, "lid_migration", "")
 	migrationErr := a.migrateHistoricalLIDs(syncCtx)
 	finishMigration(migrationErr)

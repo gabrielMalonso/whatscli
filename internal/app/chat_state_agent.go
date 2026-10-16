@@ -10,6 +10,7 @@ import (
 	"github.com/gabrielMalonso/whatscli/internal/store"
 	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/types"
+	"go.mau.fi/whatsmeow/types/events"
 )
 
 type ChatStateAction string
@@ -106,6 +107,16 @@ func (a *App) ApplyAgentChatState(ctx context.Context, r ChatStateRequest) (Chat
 		failure.Code = "not_dispatched"
 		return failure.Result, failure
 	}
+	jid, err := ParseHistoryJID(r.Requested)
+	if err != nil {
+		failure.Code, failure.Cause = "identity_unavailable", err
+		return failure.Result, failure
+	}
+	chatBinding, err := a.prepareRegularLowChat(ctx, jid)
+	if err != nil {
+		failure.Code, failure.Cause = "identity_unavailable", err
+		return failure.Result, failure
+	}
 	release, err := a.beginChatStateWrite(ctx, appstate.WAPatchRegularLow)
 	if err != nil {
 		failure.Code, failure.Cause = "not_dispatched", err
@@ -124,17 +135,17 @@ func (a *App) ApplyAgentChatState(ctx context.Context, r ChatStateRequest) (Chat
 		failure.Code = "identity_unavailable"
 		return failure.Result, failure
 	}
+	if chatBinding != nil && store.DraftRecipientFromPublic(i.ChatJID, i.AliasJID) != store.DraftRecipientFromPublic(chatBinding.Store.String(), chatBinding.Wire.String()) {
+		// The public snapshot and SDK binding are separate local reads.
+		// Refuse a remap instead of reporting a different pair than we use.
+		failure.Code, failure.Cause = "identity_unavailable", errRegularLowChatIdentity
+		a.handleAppStateSyncError(ctx, &events.AppStateSyncError{Name: appstate.WAPatchRegularLow, Error: errRegularLowChatIdentity}, nil)
+		return failure.Result, failure
+	}
 	failure.Result.Observation = &ChatStateObservation{Account: store.DraftIdentity{PN: i.AccountJID, LID: i.AccountAliasJID}, Target: store.DraftRecipientFromPublic(i.ChatJID, i.AliasJID)}
 	if err := ValidateChatStateResult(r, failure.Result); err != nil {
 		failure.Code, failure.Cause = "identity_unavailable", err
 		failure.Result.Observation = nil
-		return failure.Result, failure
-	}
-	// Builders index target.String() directly. Unlike outbound SendMessage,
-	// these operations do not require translating a PN to a LID.
-	jid, err := ParseHistoryJID(r.Requested)
-	if err != nil {
-		failure.Code, failure.Cause = "identity_unavailable", err
 		return failure.Result, failure
 	}
 	beforeSend := func() error {
@@ -150,13 +161,13 @@ func (a *App) ApplyAgentChatState(ctx context.Context, r ChatStateRequest) (Chat
 	var mirror ChatStateMirror
 	switch r.Action {
 	case ChatStateMarkRead:
-		outcome, mirror, err = a.markChatReadResolved(ctx, jid, i.ChatJID, true, beforeSend)
+		outcome, mirror, err = a.markChatReadResolved(ctx, jid, i.ChatJID, true, beforeSend, chatBinding)
 	case ChatStateMarkUnread:
-		outcome, mirror, err = a.markChatReadResolved(ctx, jid, i.ChatJID, false, beforeSend)
+		outcome, mirror, err = a.markChatReadResolved(ctx, jid, i.ChatJID, false, beforeSend, chatBinding)
 	case ChatStateArchive:
-		outcome, mirror, err = a.archiveChatResolved(ctx, jid, i.ChatJID, true, beforeSend)
+		outcome, mirror, err = a.archiveChatResolved(ctx, jid, i.ChatJID, true, beforeSend, chatBinding)
 	case ChatStateUnarchive:
-		outcome, mirror, err = a.archiveChatResolved(ctx, jid, i.ChatJID, false, beforeSend)
+		outcome, mirror, err = a.archiveChatResolved(ctx, jid, i.ChatJID, false, beforeSend, chatBinding)
 	}
 	failure.Result.Outcome, failure.Result.LocalMirror = outcome, mirror
 	if err == nil {

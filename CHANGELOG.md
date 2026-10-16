@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Experimental sync: keep regular_low recovery lock/delta attempts bounded by the supplied timeout, retaining debt without resets or primary recovery on expiry.
+
+- Experimental chat state: refuse an agent action when its public session observation disagrees with the frozen SDK PN/LID binding; retain debt and report no dispatch or conflicting identity observation.
+
+- Experimental chat state: refuse a key-changing SET that would leave two physical records for the same logical field before submitting its mutating IQ. Report SDK-proven preflight refusals as `not_dispatched`; failures after an attempted IQ or 409 remain uncertain, with no automatic replay or local mirror update.
+
+- Experimental chat state: share the verified local PN/LID binding across archive/unarchive, included unpin and pin/unpin. Confirm the selected LID wire echo and mirror the original PN row without changing archive ranges or adding auto-unarchive. PN shadows cannot veto or overwrite canonical LID archive/pin/read projections; missing/ambiguous canonical fields stay unknown, with existing identity/debt/generation fences and no network alias fallback.
+
+- Experimental chat state: opt in at client construction with `WHATSMEOW_REGULAR_LOW_WEB_COMPAT=1` and explicitly anchor each owner using `sync --regular-low-full-sync`. Report degraded regular_low status separately from readiness; mirror exact authenticated returned archive/pin/read fields through existing tickets/debt fences. Read/unread uses a locally verified frozen LID index with the original stored PN message range and bounded mirror. Default/other collections stay strict; no automatic reset, network alias fallback or uncertain-action replay. Pin the merged fork SDK through a remote module replacement. Offline regression validation; real-account validation remains a separate integration step.
+
 - Sync/auth: wait for confirmed login before metadata bootstrap while preserving transport cleanup on failed login waits, retain bounded key-delivery waits within the existing full-fetch budget, and renew durable app-state debt on later failures even after the automatic recovery budget is spent. Preserve generation fencing, other writers' intents and conservative ACK/completion handling; failed marker writes fence older checkpoints and dependent mutations until a later durable replay. Offline fixtures only; this does not establish or cure the cryptographic cause of LTHash failures.
 
 - Auth: recover a recorded revoked session with `auth logout` without connecting the invalid device. Preserve the existing account, history, drafts/outbound evidence and change checkpoints; retain revocation evidence until a confirmed new login. Keep normal remote logout, readonly and writer locks.

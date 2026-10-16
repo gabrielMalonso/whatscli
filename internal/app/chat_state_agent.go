@@ -10,6 +10,7 @@ import (
 	"github.com/gabrielMalonso/whatscli/internal/store"
 	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/types"
+	"go.mau.fi/whatsmeow/types/events"
 )
 
 type ChatStateAction string
@@ -132,6 +133,13 @@ func (a *App) ApplyAgentChatState(ctx context.Context, r ChatStateRequest) (Chat
 	i := identities[0]
 	if i.AccountJID == "" || i.AccountJID != client.LinkedJID() || i.AccountAliasJID != "" && i.AccountAliasJID != client.LinkedLID() {
 		failure.Code = "identity_unavailable"
+		return failure.Result, failure
+	}
+	if chatBinding != nil && store.DraftRecipientFromPublic(i.ChatJID, i.AliasJID) != store.DraftRecipientFromPublic(chatBinding.Store.String(), chatBinding.Wire.String()) {
+		// The public snapshot and SDK binding are separate local reads.
+		// Refuse a remap instead of reporting a different pair than we use.
+		failure.Code, failure.Cause = "identity_unavailable", errRegularLowChatIdentity
+		a.handleAppStateSyncError(ctx, &events.AppStateSyncError{Name: appstate.WAPatchRegularLow, Error: errRegularLowChatIdentity}, nil)
 		return failure.Result, failure
 	}
 	failure.Result.Observation = &ChatStateObservation{Account: store.DraftIdentity{PN: i.AccountJID, LID: i.AccountAliasJID}, Target: store.DraftRecipientFromPublic(i.ChatJID, i.AliasJID)}

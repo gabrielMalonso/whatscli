@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Experimental chat state: refuse an agent action when its public session observation disagrees with the frozen SDK PN/LID binding; retain debt and report no dispatch or conflicting identity observation.
+
 - Experimental chat state: refuse a key-changing SET that would leave two physical records for the same logical field before submitting its mutating IQ. Report SDK-proven preflight refusals as `not_dispatched`; failures after an attempted IQ or 409 remain uncertain, with no automatic replay or local mirror update.
 
 - Experimental chat state: share the verified local PN/LID binding across archive/unarchive, included unpin and pin/unpin. Confirm the selected LID wire echo and mirror the original PN row without changing archive ranges or adding auto-unarchive. PN shadows cannot veto or overwrite canonical LID archive/pin/read projections; missing/ambiguous canonical fields stay unknown, with existing identity/debt/generation fences and no network alias fallback.

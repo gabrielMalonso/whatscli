@@ -60,8 +60,10 @@ standalone pin does not add an unarchive action.
 The Device's own known pair is accepted only without local contradiction. Missing,
 failed or contradictory PN mappings refuse before the delta/mutation, with no
 network identity discovery. An explicit unpaired LID stays that LID; groups retain
-their identity policy. Binding is rechecked before send and mirror. A changed
-pair/account after IQ leaves an unknown outcome and debt, without replaying the
+their identity policy. Agent actions also require the public session observation
+to match the frozen SDK pair before reporting or using it. Binding is rechecked
+before send and mirror. A changed pair/account after IQ leaves an unknown outcome
+and debt, without replaying the
 action or mirroring under the new identity. These reads and SQLite writes are
 not an atomic identity transaction.
 

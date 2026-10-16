@@ -571,6 +571,29 @@ func TestRegularLowChatIdentityAndEchoRefusals(t *testing.T) {
 	}
 }
 
+func TestRegularLowAgentObservationMustMatchBinding(t *testing.T) {
+	for _, requestedLID := range []bool{false, true} {
+		t.Run(map[bool]string{false: "PN", true: "LID"}[requestedLID], func(t *testing.T) {
+			a, f, pn, lid := regularLowFixture(t)
+			requested, mapping := pn, `INSERT INTO whatsmeow_lid_map VALUES('301','15550000001')`
+			if requestedLID {
+				requested, mapping = lid, `INSERT INTO whatsmeow_lid_map VALUES('300','15550000002')`
+			}
+			// The SDK's frozen pair and a later public session snapshot can
+			// disagree after a remap. Neither observation may silently win.
+			historyIdentityFixture(t, a, mapping)
+			request := ChatStateRequest{Version: 1, StoreRef: a.StoreDir(), Requested: requested.String(), Action: ChatStateMarkUnread}
+			result, err := a.ApplyAgentChatState(t.Context(), request)
+			assertChatStateFailure(t, err, "identity_unavailable", ChatStateNotDispatched)
+			row, readErr := a.db.GetChat(pn.String())
+			debt, debtErr := a.db.AppStateRecoveryRequired("regular_low")
+			if readErr != nil || !row.Unread || row.UnreadCount != 1 || result.Observation != nil || !debt || debtErr != nil || len(f.patches) != 0 || f.resolves.Load() != 0 {
+				t.Fatalf("mismatched observation mutated or lost debt: %+v %+v %v %v", row, result, readErr, debtErr)
+			}
+		})
+	}
+}
+
 func TestRegularLowReadProjectionUsesCanonicalLID(t *testing.T) {
 	for _, field := range []string{"known", "missing", "ambiguous"} {
 		for _, reverse := range []bool{false, true} {

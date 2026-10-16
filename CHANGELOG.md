@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Experimental chat state: refuse a key-changing SET that would leave two physical records for the same logical field before submitting its mutating IQ. Report SDK-proven preflight refusals as `not_dispatched`; failures after an attempted IQ or 409 remain uncertain, with no automatic replay or local mirror update.
+
 - Experimental chat state: share the verified local PN/LID binding across archive/unarchive, included unpin and pin/unpin. Confirm the selected LID wire echo and mirror the original PN row without changing archive ranges or adding auto-unarchive. PN shadows cannot veto or overwrite canonical LID archive/pin/read projections; missing/ambiguous canonical fields stay unknown, with existing identity/debt/generation fences and no network alias fallback.
 
 - Experimental chat state: opt in at client construction with `WHATSMEOW_REGULAR_LOW_WEB_COMPAT=1` and explicitly anchor each owner using `sync --regular-low-full-sync`. Report degraded regular_low status separately from readiness; mirror exact authenticated returned archive/pin/read fields through existing tickets/debt fences. Read/unread uses a locally verified frozen LID index with the original stored PN message range and bounded mirror. Default/other collections stay strict; no automatic reset, network alias fallback or uncertain-action replay. Offline regression validation; SDK release pin and real-account validation remain separate integration steps.

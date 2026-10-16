@@ -126,6 +126,41 @@ func regularLowFixture(t *testing.T) (*App, *regularLowWA, types.JID, types.JID)
 	return a, f, pn, lid
 }
 
+func TestRegularLowGroupSendRefusalPreservesMirror(t *testing.T) {
+	for _, preflight := range []bool{true, false} {
+		t.Run(map[bool]string{true: "before_submission", false: "after_submission"}[preflight], func(t *testing.T) {
+			a, f, _, _ := regularLowFixture(t)
+			group := types.NewJID("123456-789", types.GroupServer)
+			if err := a.db.UpsertChat(group.String(), "group", "Synthetic group", time.Unix(30, 0)); err != nil {
+				t.Fatal(err)
+			}
+			f.sendHook = func(_ context.Context, boundary func()) ([]any, error) {
+				boundary()
+				if preflight {
+					return nil, &whatsmeow.RegularLowSendPreflightError{Err: whatsmeow.ErrRegularLowProjectionUnknown}
+				}
+				f.InvalidateRegularLowPolicy()
+				return nil, whatsmeow.ErrRegularLowSendUnconfirmed
+			}
+			request := ChatStateRequest{Version: 1, StoreRef: a.StoreDir(), Requested: group.String(), Action: ChatStateMarkUnread}
+			result, err := a.ApplyAgentChatState(t.Context(), request)
+			code, outcome := "chat_state_outcome_uncertain", ChatStateUncertain
+			if preflight {
+				code, outcome = "not_dispatched", ChatStateNotDispatched
+			}
+			assertChatStateFailure(t, err, code, outcome)
+			row, readErr := a.db.GetChat(group.String())
+			debt, debtErr := a.db.AppStateRecoveryRequired("regular_low")
+			if readErr != nil || row.Unread || row.UnreadCount != 0 || result.LocalMirror != ChatStateMirrorUnknown || !debt || debtErr != nil || len(f.patches) != 1 {
+				t.Fatalf("refused send changed the mirror, lost debt or retried: %+v %+v %v %v", row, result, readErr, debtErr)
+			}
+			if preflight && (!f.RegularLowPolicyStatus().Valid || !f.RegularLowPolicyStatus().FetchComplete) {
+				t.Fatal("preflight refusal invalidated the anchor")
+			}
+		})
+	}
+}
+
 func TestRegularLowOwnedResultSurvivesNotificationWithoutClearingNewDebt(t *testing.T) {
 	a, f, pn, lid := regularLowFixture(t)
 	if err := a.db.SetChatPinned(pn.String(), true); err != nil {

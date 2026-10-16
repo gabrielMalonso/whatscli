@@ -301,7 +301,12 @@ func (a *App) applyLocalChatStateWrite(ctx context.Context, beforeSend func() er
 	// persistence before SDK preparation, and does not prove a frame was sent.
 	postSendEvents, err := send(func() { pending.reserve(a) })
 	if err != nil {
-		return ChatStateUncertain, ChatStateMirrorUnknown, errors.Join(err, a.failLocalAppStateWrite(ctx, &pending, postSendEvents))
+		outcome := ChatStateUncertain
+		var preflight *whatsmeow.RegularLowSendPreflightError
+		if a.regularLowEnabled(appstate.WAPatchRegularLow) && errors.As(err, &preflight) {
+			outcome = ChatStateNotDispatched
+		}
+		return outcome, ChatStateMirrorUnknown, errors.Join(err, a.failLocalAppStateWrite(ctx, &pending, postSendEvents))
 	}
 	if !pending.reserved {
 		return ChatStateSDKCompleted, ChatStateMirrorUnconfirmed, fmt.Errorf("WhatsApp app state send completed without an apply boundary")

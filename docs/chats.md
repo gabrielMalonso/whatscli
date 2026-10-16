@@ -74,6 +74,12 @@ leaves that field unknown and SQLite unchanged, without inventing global debt or
 chat rebuild. SDK confirmation uses authenticated records; `ActionState`
 Success/Orphan is not a confirmation gate.
 
+If encoding under the current key would leave a second physical record for an
+existing logical field, the SDK refuses before submitting the mutating IQ;
+the CLI reports `not_dispatched` and preserves the local mirror. Explicit key
+rotation is not implemented by this mode. A refusal after an IQ was attempted,
+including a 409 rebase, remains uncertain and must not be replayed automatically.
+
 ### General behavior
 
 - `list` is local and sorted by pinned chats first, then newest known message timestamp. Legacy display resolution keeps that priority after PN/LID rows are fused; equal pin/activity keys retain their incoming order. Fusion continues to retain the first row's pin/archive/mute flags and the newest activity, without inferring remote state.

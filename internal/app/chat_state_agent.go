@@ -106,18 +106,15 @@ func (a *App) ApplyAgentChatState(ctx context.Context, r ChatStateRequest) (Chat
 		failure.Code = "not_dispatched"
 		return failure.Result, failure
 	}
-	var readBinding *regularLowReadBinding
-	if r.Action == ChatStateMarkRead || r.Action == ChatStateMarkUnread {
-		jid, err := ParseHistoryJID(r.Requested)
-		if err != nil {
-			failure.Code, failure.Cause = "identity_unavailable", err
-			return failure.Result, failure
-		}
-		readBinding, err = a.prepareRegularLowRead(ctx, jid)
-		if err != nil {
-			failure.Code, failure.Cause = "identity_unavailable", err
-			return failure.Result, failure
-		}
+	jid, err := ParseHistoryJID(r.Requested)
+	if err != nil {
+		failure.Code, failure.Cause = "identity_unavailable", err
+		return failure.Result, failure
+	}
+	chatBinding, err := a.prepareRegularLowChat(ctx, jid)
+	if err != nil {
+		failure.Code, failure.Cause = "identity_unavailable", err
+		return failure.Result, failure
 	}
 	release, err := a.beginChatStateWrite(ctx, appstate.WAPatchRegularLow)
 	if err != nil {
@@ -143,13 +140,6 @@ func (a *App) ApplyAgentChatState(ctx context.Context, r ChatStateRequest) (Chat
 		failure.Result.Observation = nil
 		return failure.Result, failure
 	}
-	// Builders index target.String() directly. Unlike outbound SendMessage,
-	// opt-in read/unread uses its separate frozen local PN/LID binding.
-	jid, err := ParseHistoryJID(r.Requested)
-	if err != nil {
-		failure.Code, failure.Cause = "identity_unavailable", err
-		return failure.Result, failure
-	}
 	beforeSend := func() error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -163,13 +153,13 @@ func (a *App) ApplyAgentChatState(ctx context.Context, r ChatStateRequest) (Chat
 	var mirror ChatStateMirror
 	switch r.Action {
 	case ChatStateMarkRead:
-		outcome, mirror, err = a.markChatReadResolved(ctx, jid, i.ChatJID, true, beforeSend, readBinding)
+		outcome, mirror, err = a.markChatReadResolved(ctx, jid, i.ChatJID, true, beforeSend, chatBinding)
 	case ChatStateMarkUnread:
-		outcome, mirror, err = a.markChatReadResolved(ctx, jid, i.ChatJID, false, beforeSend, readBinding)
+		outcome, mirror, err = a.markChatReadResolved(ctx, jid, i.ChatJID, false, beforeSend, chatBinding)
 	case ChatStateArchive:
-		outcome, mirror, err = a.archiveChatResolved(ctx, jid, i.ChatJID, true, beforeSend)
+		outcome, mirror, err = a.archiveChatResolved(ctx, jid, i.ChatJID, true, beforeSend, chatBinding)
 	case ChatStateUnarchive:
-		outcome, mirror, err = a.archiveChatResolved(ctx, jid, i.ChatJID, false, beforeSend)
+		outcome, mirror, err = a.archiveChatResolved(ctx, jid, i.ChatJID, false, beforeSend, chatBinding)
 	}
 	failure.Result.Outcome, failure.Result.LocalMirror = outcome, mirror
 	if err == nil {

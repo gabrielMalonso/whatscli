@@ -176,7 +176,7 @@ func TestChatStateSDKCompletedWithMissingCacheKeepsDebt(t *testing.T) {
 	if err := a.db.SetChatArchived(chat.String(), false); err != nil {
 		t.Fatal(err)
 	}
-	outcome, mirror, err := a.archiveChatResolved(t.Context(), chat, chat.String(), true, nil)
+	outcome, mirror, err := a.archiveChatResolved(t.Context(), chat, chat.String(), true, nil, nil)
 	if err == nil || outcome != ChatStateSDKCompleted || mirror != ChatStateMirrorUnconfirmed {
 		t.Fatal(outcome, mirror, err)
 	}

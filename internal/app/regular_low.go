@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gabrielMalonso/whatscli/internal/wa"
-
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/proto/waSyncAction"
@@ -129,15 +127,17 @@ func (a *App) returnedRegularLowProjection(jid types.JID, returned []any) (whats
 	return projections[jid], err
 }
 
-// Confirmation still needs the exact wire JID. A second authenticated alias
-// cannot silently replace that observation when both materialize one store row.
-func (a *App) returnedRegularLowFlags(ctx context.Context, chat string, jid types.JID, returned []any) (whatsmeow.RegularLowChatProjection, error) {
+func (a *App) returnedRegularLowFlags(ctx context.Context, chat string, wire types.JID, returned []any, binding *regularLowChatBinding) (whatsmeow.RegularLowChatProjection, error) {
 	projections, err := a.returnedRegularLowProjections(returned)
 	if err != nil {
 		return whatsmeow.RegularLowChatProjection{}, err
 	}
-	p := projections[jid]
-	merged := a.regularLowFlagsByStore(ctx, projections)[chat]
+	flags, err := a.regularLowFlagsByStore(ctx, projections, binding)
+	if err != nil {
+		return whatsmeow.RegularLowChatProjection{}, err
+	}
+	p := projections[wire]
+	merged := flags[chat]
 	p.ArchiveKnown = p.ArchiveKnown && !merged.ArchiveAmbiguous
 	p.PinKnown = p.PinKnown && !merged.PinAmbiguous
 	return p, nil
@@ -159,15 +159,32 @@ func mergeRegularLowFlags(current, observed whatsmeow.RegularLowChatProjection) 
 	return current
 }
 
-func (a *App) regularLowFlagsByStore(ctx context.Context, projections map[types.JID]whatsmeow.RegularLowChatProjection) map[string]whatsmeow.RegularLowChatProjection {
+func (a *App) regularLowFlagsByStore(ctx context.Context, projections map[types.JID]whatsmeow.RegularLowChatProjection, frozen *regularLowChatBinding) (map[string]whatsmeow.RegularLowChatProjection, error) {
 	flags := make(map[string]whatsmeow.RegularLowChatProjection)
 	for jid, p := range projections {
-		if p.ArchiveKnown || p.PinKnown || p.ArchiveAmbiguous || p.PinAmbiguous {
-			chat := canonicalJIDString(a.canonicalStoreJID(ctx, jid))
-			flags[chat] = mergeRegularLowFlags(flags[chat], p)
+		if !p.ArchiveKnown && !p.PinKnown && !p.ArchiveAmbiguous && !p.PinAmbiguous {
+			continue
 		}
+		var chat string
+		if jid.Server == types.DefaultUserServer || jid.Server == types.HiddenUserServer {
+			binding, err := a.regularLowProjectionBinding(ctx, jid, frozen)
+			if errors.Is(err, errRegularLowChatMissing) && !errors.Is(err, errRegularLowChatIdentity) {
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+			if binding.Wire != jid {
+				// PN shadows stay in SDK crypto state, outside product projection.
+				continue
+			}
+			chat = binding.Store.String()
+		} else {
+			chat = canonicalJIDString(a.canonicalStoreJID(ctx, jid))
+		}
+		flags[chat] = mergeRegularLowFlags(flags[chat], p)
 	}
-	return flags
+	return flags, nil
 }
 
 func (a *App) returnedRegularLowProjections(returned []any) (map[types.JID]whatsmeow.RegularLowChatProjection, error) {
@@ -229,9 +246,9 @@ func (a *App) returnedRegularLowProjections(returned []any) (map[types.JID]whats
 	return projections, nil
 }
 
-// PN read shadows never compete with the verified LID in this same batch,
-// regardless of event ordering. Missing read fields leave SQLite untouched.
-func (a *App) persistReturnedRegularLow(ctx context.Context, returned []any, frozen *regularLowReadBinding) error {
+// PN shadows never compete with the verified LID in this same batch. Unknown
+// canonical fields stay unknown; selecting authority precedes conflict reduction.
+func (a *App) persistReturnedRegularLow(ctx context.Context, returned []any, frozen *regularLowChatBinding) error {
 	if frozen != nil {
 		if err := frozen.revalidate(ctx, a); err != nil {
 			return err
@@ -242,7 +259,11 @@ func (a *App) persistReturnedRegularLow(ctx context.Context, returned []any, fro
 		return err
 	}
 	// Resolve all field conflicts before the first SQLite write.
-	for chat, p := range a.regularLowFlagsByStore(ctx, projections) {
+	flags, err := a.regularLowFlagsByStore(ctx, projections, frozen)
+	if err != nil {
+		return err
+	}
+	for chat, p := range flags {
 		if err := a.persistRegularLowFlags(chat, p); err != nil {
 			return err
 		}
@@ -251,14 +272,8 @@ func (a *App) persistReturnedRegularLow(ctx context.Context, returned []any, fro
 		if !p.ReadKnown {
 			continue
 		}
-		var binding regularLowReadBinding
-		var err error
-		if frozen != nil && (jid == frozen.Requested || jid == frozen.Store || jid == frozen.Wire) {
-			binding = *frozen
-		} else {
-			binding, err = a.bindRegularLowRead(ctx, jid)
-		}
-		if errors.Is(err, errRegularLowReadMissing) {
+		binding, err := a.regularLowProjectionBinding(ctx, jid, frozen)
+		if errors.Is(err, errRegularLowChatMissing) && !errors.Is(err, errRegularLowChatIdentity) {
 			continue
 		}
 		if err != nil {
@@ -301,77 +316,59 @@ func (a *App) persistLiveRegularLow(ctx context.Context, event any) error {
 	var jid types.JID
 	switch v := event.(type) {
 	case *events.Archive:
-		if v == nil {
-			return whatsmeow.ErrRegularLowProjectionUnknown
+		if v != nil {
+			jid = v.JID
 		}
-		jid = v.JID
 	case *events.Pin:
-		if v == nil {
-			return whatsmeow.ErrRegularLowProjectionUnknown
+		if v != nil {
+			jid = v.JID
 		}
-		jid = v.JID
 	case *events.MarkChatAsRead:
-		if v == nil {
-			return whatsmeow.ErrRegularLowProjectionUnknown
+		if v != nil {
+			jid = v.JID
 		}
-		binding, err := a.bindRegularLowRead(ctx, v.JID)
-		if errors.Is(err, errRegularLowReadMissing) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		p := a.regularLowProjection(binding.Wire)
-		if !p.ReadKnown || p.ReadAction == nil {
-			return nil
-		}
-		if err := binding.revalidate(ctx, a); err != nil {
-			return err
-		}
-		return a.persistRegularLowRead(binding.Store.String(), p)
 	}
 	if jid.IsEmpty() {
 		return whatsmeow.ErrRegularLowProjectionUnknown
 	}
-	p := a.regularLowProjection(jid)
-	// Alias reads are local, corroborated in both directions, and used only
-	// to mask conflicting fields. They never supply a missing exact-JID field.
+	wire := jid
+	var chat string
+	var binding *regularLowChatBinding
 	if jid.Server == types.DefaultUserServer || jid.Server == types.HiddenUserServer {
-		reader, ok := a.WA().(regularLowLocalIdentity)
-		if !ok {
-			return whatsmeow.ErrRegularLowProjectionUnknown
+		b, err := a.regularLowProjectionBinding(ctx, jid, nil)
+		if errors.Is(err, errRegularLowChatMissing) && !errors.Is(err, errRegularLowChatIdentity) {
+			return nil
 		}
-		alias, err := reader.LookupLocalAlias(ctx, jid)
 		if err != nil {
 			return err
 		}
-		alias = alias.ToNonAD()
-		if !alias.IsEmpty() {
-			verified, err := reader.CheckPublicPair(ctx, jid, alias)
-			if err != nil {
-				return err
-			}
-			if verified != wa.PublicPairVerified {
-				return whatsmeow.ErrRegularLowProjectionUnknown
-			}
-			merged := mergeRegularLowFlags(p, a.regularLowProjection(alias))
-			p.ArchiveKnown = p.ArchiveKnown && !merged.ArchiveAmbiguous
-			p.PinKnown = p.PinKnown && !merged.PinAmbiguous
-			p.ArchiveAmbiguous, p.PinAmbiguous = merged.ArchiveAmbiguous, merged.PinAmbiguous
-		}
+		binding, wire, chat = &b, b.Wire, b.Store.String()
+	} else {
+		chat = canonicalJIDString(a.canonicalStoreJID(ctx, jid))
 	}
+	p := a.regularLowProjection(wire)
 	if a.regularLowPolicyStatus() != status {
 		return whatsmeow.ErrRegularLowProjectionUnknown
 	}
+	if binding != nil {
+		if err := binding.revalidate(ctx, a); err != nil {
+			return err
+		}
+	}
 	switch event.(type) {
+	case *events.MarkChatAsRead:
+		if !p.ReadKnown || p.ReadAction == nil {
+			return nil
+		}
+		return a.persistRegularLowRead(chat, p)
 	case *events.Archive:
-		if !p.ArchiveKnown && !p.ArchiveAmbiguous {
+		if !p.ArchiveKnown && !p.ArchiveAmbiguous && binding == nil {
 			return whatsmeow.ErrRegularLowProjectionUnknown
 		}
 	case *events.Pin:
-		if !p.PinKnown && !p.PinAmbiguous {
+		if !p.PinKnown && !p.PinAmbiguous && binding == nil {
 			return whatsmeow.ErrRegularLowProjectionUnknown
 		}
 	}
-	return a.persistRegularLowFlags(canonicalJIDString(a.canonicalStoreJID(ctx, jid)), p)
+	return a.persistRegularLowFlags(chat, p)
 }

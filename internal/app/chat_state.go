@@ -68,24 +68,45 @@ func (a *App) AddChatStatePersistenceHandler(ctx context.Context) (func(), error
 }
 
 func (a *App) ArchiveChat(ctx context.Context, jid types.JID, archive bool) error {
+	if a.ReadOnly() {
+		return fmt.Errorf("read-only mode: cannot update chat state")
+	}
+	binding, err := a.prepareRegularLowChat(ctx, jid)
+	if err != nil {
+		return err
+	}
 	release, err := a.beginChatStateWrite(ctx, appstate.WAPatchRegularLow)
 	if err != nil {
 		return err
 	}
 	defer release()
-	chatJID := canonicalJIDString(a.canonicalStoreJID(ctx, jid))
-	_, _, err = a.archiveChatResolved(ctx, jid, chatJID, archive, nil)
+	var chatJID string
+	if binding != nil {
+		chatJID = binding.Store.String()
+	} else {
+		chatJID = canonicalJIDString(a.canonicalStoreJID(ctx, jid))
+	}
+	_, _, err = a.archiveChatResolved(ctx, jid, chatJID, archive, nil, binding)
 	return err
 }
 
 // Resolved helpers run under beginChatStateWrite. The legacy wrappers retain
 // their resolver; agent actions supply one frozen strict observation instead.
-func (a *App) archiveChatResolved(ctx context.Context, jid types.JID, chatJID string, archive bool, beforeSend func() error) (ChatStateOutcome, ChatStateMirror, error) {
+func (a *App) archiveChatResolved(ctx context.Context, jid types.JID, chatJID string, archive bool, beforeSend func() error, binding *regularLowChatBinding) (ChatStateOutcome, ChatStateMirror, error) {
+	wire := jid
+	if binding != nil {
+		chatJID, wire = binding.Store.String(), binding.Wire
+	}
 	return a.applyLocalChatStateWrite(ctx, beforeSend, func(boundary func()) ([]any, error) {
-		return a.wa.ArchiveChat(ctx, jid, archive, nowUTC(), nil, boundary)
+		return a.wa.ArchiveChat(ctx, wire, archive, nowUTC(), nil, boundary)
 	}, func(returned []any) error {
-		if a.regularLowEnabled(appstate.WAPatchRegularLow) {
-			p, err := a.returnedRegularLowFlags(context.WithoutCancel(ctx), chatJID, jid, returned)
+		if a.regularLowEnabled(appstate.WAPatchRegularLow) || binding != nil {
+			if binding != nil {
+				if err := binding.revalidate(context.WithoutCancel(ctx), a); err != nil {
+					return err
+				}
+			}
+			p, err := a.returnedRegularLowFlags(context.WithoutCancel(ctx), chatJID, wire, returned, binding)
 			if err != nil {
 				return err
 			}
@@ -99,30 +120,39 @@ func (a *App) archiveChatResolved(ctx context.Context, jid types.JID, chatJID st
 			return err
 		}
 		return a.persistCachedChatFlags(chatJID, settings)
-	}, nil)
+	}, binding)
 }
 
 func (a *App) PinChat(ctx context.Context, jid types.JID, pin bool) error {
+	if a.ReadOnly() {
+		return fmt.Errorf("read-only mode: cannot update chat state")
+	}
+	binding, err := a.prepareRegularLowChat(ctx, jid)
+	if err != nil {
+		return err
+	}
 	release, err := a.beginChatStateWrite(ctx, appstate.WAPatchRegularLow)
 	if err != nil {
 		return err
 	}
 	defer release()
-	chatJID := canonicalJIDString(a.canonicalStoreJID(ctx, jid))
-	pending, err := a.beginLocalAppStateWrite(appstate.WAPatchRegularLow)
-	if err != nil {
-		return err
+	wire := jid
+	var chatJID string
+	if binding != nil {
+		chatJID, wire = binding.Store.String(), binding.Wire
+	} else {
+		chatJID = canonicalJIDString(a.canonicalStoreJID(ctx, jid))
 	}
-	postSendEvents, err := a.wa.PinChat(ctx, jid, pin, func() { pending.reserve(a) })
-	if err != nil {
-		return errors.Join(err, a.failLocalAppStateWrite(ctx, &pending, postSendEvents))
-	}
-	if !pending.reserved {
-		return fmt.Errorf("WhatsApp app state send completed without an apply boundary")
-	}
-	return a.completeLocalAppStateWrite(ctx, &pending, postSendEvents, func() error {
-		if a.regularLowEnabled(appstate.WAPatchRegularLow) {
-			p, err := a.returnedRegularLowFlags(context.WithoutCancel(ctx), chatJID, jid, postSendEvents)
+	_, _, err = a.applyLocalChatStateWrite(ctx, nil, func(boundary func()) ([]any, error) {
+		return a.wa.PinChat(ctx, wire, pin, boundary)
+	}, func(returned []any) error {
+		if a.regularLowEnabled(appstate.WAPatchRegularLow) || binding != nil {
+			if binding != nil {
+				if err := binding.revalidate(context.WithoutCancel(ctx), a); err != nil {
+					return err
+				}
+			}
+			p, err := a.returnedRegularLowFlags(context.WithoutCancel(ctx), chatJID, wire, returned, binding)
 			if err != nil {
 				return err
 			}
@@ -136,7 +166,8 @@ func (a *App) PinChat(ctx context.Context, jid types.JID, pin bool) error {
 			return err
 		}
 		return a.persistCachedChatFlags(chatJID, settings)
-	})
+	}, binding)
+	return err
 }
 
 func (a *App) MuteChat(ctx context.Context, jid types.JID, mute bool, duration time.Duration) error {
@@ -167,7 +198,7 @@ func (a *App) MarkChatRead(ctx context.Context, jid types.JID, read bool) error 
 	if a.ReadOnly() {
 		return fmt.Errorf("read-only mode: cannot update chat state")
 	}
-	binding, err := a.prepareRegularLowRead(ctx, jid)
+	binding, err := a.prepareRegularLowChat(ctx, jid)
 	if err != nil {
 		return err
 	}
@@ -186,19 +217,10 @@ func (a *App) MarkChatRead(ctx context.Context, jid types.JID, read bool) error 
 	return err
 }
 
-func (a *App) markChatReadResolved(ctx context.Context, jid types.JID, chatJID string, read bool, beforeSend func() error, binding *regularLowReadBinding) (ChatStateOutcome, ChatStateMirror, error) {
+func (a *App) markChatReadResolved(ctx context.Context, jid types.JID, chatJID string, read bool, beforeSend func() error, binding *regularLowChatBinding) (ChatStateOutcome, ChatStateMirror, error) {
 	wire := jid
 	if binding != nil {
 		chatJID, wire = binding.Store.String(), binding.Wire
-		previous := beforeSend
-		beforeSend = func() error {
-			if previous != nil {
-				if err := previous(); err != nil {
-					return err
-				}
-			}
-			return binding.revalidate(ctx, a)
-		}
 	}
 	var lastTS time.Time
 	var lastKey *waCommon.MessageKey
@@ -259,14 +281,19 @@ func (a *App) strictReadMessageRange(chatJID string) (time.Time, *waCommon.Messa
 	return info.Timestamp, key, nil
 }
 
-func (a *App) applyLocalChatStateWrite(ctx context.Context, beforeSend func() error, send func(func()) ([]any, error), persist func([]any) error, binding *regularLowReadBinding) (ChatStateOutcome, ChatStateMirror, error) {
+func (a *App) applyLocalChatStateWrite(ctx context.Context, beforeSend func() error, send func(func()) ([]any, error), persist func([]any) error, binding *regularLowChatBinding) (ChatStateOutcome, ChatStateMirror, error) {
 	pending, err := a.beginLocalAppStateWrite(appstate.WAPatchRegularLow)
 	if err != nil {
 		return ChatStateNotDispatched, ChatStateMirrorUnknown, err
 	}
-	pending.readBinding = binding
+	pending.chatBinding = binding
 	if beforeSend != nil {
 		if err := beforeSend(); err != nil {
+			return ChatStateNotDispatched, ChatStateMirrorUnknown, err
+		}
+	}
+	if binding != nil {
+		if err := binding.revalidate(ctx, a); err != nil {
 			return ChatStateNotDispatched, ChatStateMirrorUnknown, err
 		}
 	}
@@ -539,7 +566,7 @@ type pendingLocalAppStateWrite struct {
 	once        sync.Once
 	ticket      uint64
 	reserved    bool
-	readBinding *regularLowReadBinding
+	chatBinding *regularLowChatBinding
 }
 
 func (p *pendingLocalAppStateWrite) reserve(a *App) {
@@ -567,7 +594,7 @@ func (a *App) failLocalAppStateWrite(ctx context.Context, pending *pendingLocalA
 	persistCtx := context.WithoutCancel(ctx)
 	frontier := a.appStatePersist.complete(pending.ticket, func() {
 		tracker := &appStatePersistenceTracker{}
-		result <- a.persistFetchedAppStateEvents(persistCtx, pending.collection, postSendEvents, tracker, pending.readBinding)
+		result <- a.persistFetchedAppStateEvents(persistCtx, pending.collection, postSendEvents, tracker, pending.chatBinding)
 	})
 	if err := a.appStatePersist.waitThrough(persistCtx, frontier); err != nil {
 		return err
@@ -584,8 +611,8 @@ func (a *App) completeLocalAppStateWrite(ctx context.Context, pending *pendingLo
 		var eventsErr error
 		// A refused owned result must not bypass confirmation through the
 		// generic mirror (for example a changed pair or mismatched read range).
-		if localErr == nil || !a.regularLowEnabled(pending.collection) && !errors.Is(localErr, errRegularLowReadIdentity) {
-			eventsErr = a.persistFetchedAppStateEvents(persistCtx, pending.collection, postSendEvents, tracker, pending.readBinding)
+		if localErr == nil || !a.regularLowEnabled(pending.collection) && !errors.Is(localErr, errRegularLowChatIdentity) {
+			eventsErr = a.persistFetchedAppStateEvents(persistCtx, pending.collection, postSendEvents, tracker, pending.chatBinding)
 		}
 		persistErr := localErr
 		if persistErr == nil {
@@ -605,8 +632,12 @@ func (a *App) completeLocalAppStateWrite(ctx context.Context, pending *pendingLo
 	return err
 }
 
-func (a *App) persistFetchedAppStateEvents(ctx context.Context, collection appstate.WAPatchName, eventsToPersist []any, tracker *appStatePersistenceTracker, binding *regularLowReadBinding) error {
+func (a *App) persistFetchedAppStateEvents(ctx context.Context, collection appstate.WAPatchName, eventsToPersist []any, tracker *appStatePersistenceTracker, binding *regularLowChatBinding) error {
 	tracker.begin()
+	if binding != nil && !a.regularLowEnabled(collection) {
+		tracker.record(errRegularLowChatIdentity)
+		return tracker.end()
+	}
 	if a.regularLowEnabled(collection) {
 		tracker.record(a.persistReturnedRegularLow(ctx, eventsToPersist, binding))
 		return tracker.end()

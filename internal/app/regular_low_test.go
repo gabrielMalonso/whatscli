@@ -27,6 +27,7 @@ type regularLowWA struct {
 	projection  map[types.JID]whatsmeow.RegularLowChatProjection
 	identityErr error
 	pairResult  *wa.PublicPairResult
+	afterPair   func()
 	afterSend   func([]any) []any
 }
 
@@ -58,7 +59,11 @@ func (f *regularLowWA) CheckPublicPair(ctx context.Context, pn, lid types.JID) (
 	if f.pairResult != nil {
 		return *f.pairResult, nil
 	}
-	return f.fakeWA.CheckPublicPair(ctx, pn, lid)
+	result, err := f.fakeWA.CheckPublicPair(ctx, pn, lid)
+	if err == nil && f.afterPair != nil {
+		f.afterPair()
+	}
+	return result, err
 }
 func (f *regularLowWA) ResolveLIDToPN(ctx context.Context, jid types.JID) types.JID {
 	f.resolves.Add(1)
@@ -89,7 +94,13 @@ func (f *regularLowWA) sendState(ctx context.Context, patch appstate.PatchInfo, 
 	return returned, nil
 }
 func (f *regularLowWA) ArchiveChat(ctx context.Context, jid types.JID, archive bool, ts time.Time, key *waCommon.MessageKey, boundary func()) ([]any, error) {
+	f.mu.Lock()
+	f.archiveCalls = append(f.archiveCalls, fakeArchiveCall{target: jid, archive: archive, lastMsgTS: ts, lastMsgKey: key})
+	f.mu.Unlock()
 	return f.sendState(ctx, appstate.BuildArchive(jid, archive, ts, key), boundary)
+}
+func (f *regularLowWA) PinChat(ctx context.Context, jid types.JID, pin bool, boundary func()) ([]any, error) {
+	return f.sendState(ctx, appstate.BuildPin(jid, pin), boundary)
 }
 func (f *regularLowWA) MarkChatAsRead(ctx context.Context, jid types.JID, read bool, ts time.Time, key *waCommon.MessageKey, boundary func()) ([]any, error) {
 	return f.sendState(ctx, appstate.BuildMarkChatAsRead(jid, read, ts, key), boundary)
@@ -116,7 +127,7 @@ func regularLowFixture(t *testing.T) (*App, *regularLowWA, types.JID, types.JID)
 }
 
 func TestRegularLowOwnedResultSurvivesNotificationWithoutClearingNewDebt(t *testing.T) {
-	a, f, pn, _ := regularLowFixture(t)
+	a, f, pn, lid := regularLowFixture(t)
 	if err := a.db.SetChatPinned(pn.String(), true); err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +139,7 @@ func TestRegularLowOwnedResultSurvivesNotificationWithoutClearingNewDebt(t *test
 	fetched := make(chan struct{})
 	f.fetchHook = func(context.Context, string, bool, bool) ([]any, error) {
 		close(fetched)
-		return []any{&events.Archive{JID: pn, Action: &waSyncAction.ArchiveChatAction{Archived: proto.Bool(true)}}}, nil
+		return []any{&events.Archive{JID: lid, Action: &waSyncAction.ArchiveChatAction{Archived: proto.Bool(true)}}}, nil
 	}
 	done := make(chan error, 1)
 	go func() {
@@ -197,6 +208,87 @@ func TestRegularLowArchiveRequiresReturnedUnpin(t *testing.T) {
 	}
 }
 
+func TestRegularLowArchiveRoundTripUsesBoundLID(t *testing.T) {
+	for _, agent := range []bool{false, true} {
+		for _, reverse := range []bool{false, true} {
+			t.Run(map[bool]string{false: "legacy", true: "agent"}[agent]+map[bool]string{false: "_PN_first", true: "_LID_first"}[reverse], func(t *testing.T) {
+				a, f, pn, lid := regularLowFixture(t)
+				historyIdentityFixture(t, a, `INSERT INTO whatsmeow_lid_map VALUES('300','15550000001')`)
+				if err := a.db.SetChatArchivedProjection(pn.String(), true); err != nil {
+					t.Fatal(err)
+				}
+				f.afterSend = func(echo []any) []any {
+					// Authenticated PN shadows stay in the result but have no product
+					// authority over the selected LID's archive or included unpin.
+					shadow := []any{&events.Archive{JID: pn, Action: &waSyncAction.ArchiveChatAction{Archived: proto.Bool(false)}}, &events.Pin{JID: pn, Action: &waSyncAction.PinAction{Pinned: proto.Bool(true)}}}
+					if reverse {
+						return append(echo, shadow...)
+					}
+					return append(shadow, echo...)
+				}
+				for _, archive := range []bool{false, true} {
+					var err error
+					before := time.Now().Add(-time.Second)
+					if agent {
+						action := ChatStateUnarchive
+						if archive {
+							action = ChatStateArchive
+						}
+						result, applyErr := a.ApplyAgentChatState(t.Context(), ChatStateRequest{Version: 1, StoreRef: a.StoreDir(), Requested: pn.String(), Action: action})
+						err = applyErr
+						if err != nil {
+							t.Fatal(err)
+						}
+						if result.LocalMirror != ChatStateMirrorPersisted || result.Observation == nil || result.Observation.Target.JID != pn.String() {
+							t.Fatalf("agent target/mirror changed: %+v %v", result, err)
+						}
+					} else {
+						err = a.ArchiveChat(t.Context(), pn, archive)
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+					row, err := a.db.GetChat(pn.String())
+					if err != nil || row.Archived != archive || row.Pinned {
+						t.Fatal("canonical echo lost to PN shadow", row, err)
+					}
+					patch := f.patches[len(f.patches)-1]
+					wantMutations := 1
+					if archive {
+						wantMutations = 2
+					}
+					if len(patch.Mutations) != wantMutations {
+						t.Fatal("archive/unpin patch changed", patch)
+					}
+					for _, m := range patch.Mutations {
+						if m.Index[1] != lid.String() {
+							t.Fatal("archive/unpin wire identities differ", m.Index)
+						}
+					}
+					call := f.archiveCalls[len(f.archiveCalls)-1]
+					wantRange := appstate.BuildArchive(pn, archive, call.lastMsgTS, call.lastMsgKey).Mutations[0].Value.GetArchiveChatAction().GetMessageRange()
+					if call.lastMsgKey != nil || call.lastMsgTS.Before(before) || !proto.Equal(wantRange, patch.Mutations[0].Value.GetArchiveChatAction().GetMessageRange()) {
+						t.Fatal("archive range/key policy changed")
+					}
+				}
+				// Standalone pin shares the verified index; it does not add an
+				// unarchive mutation or infer an unarchive in SQLite.
+				if err := a.PinChat(t.Context(), pn, true); err != nil {
+					t.Fatal(err)
+				}
+				patch := f.patches[len(f.patches)-1]
+				row, err := a.db.GetChat(pn.String())
+				if err != nil || !row.Archived || !row.Pinned || len(patch.Mutations) != 1 || patch.Mutations[0].Index[1] != lid.String() {
+					t.Fatal("pin changed archive semantics", row, err)
+				}
+				if f.resolves.Load() != 0 || len(f.readReceiptCalls) != 0 || len(f.patches) != 3 {
+					t.Fatal("identity discovery/receipt/retry occurred")
+				}
+			})
+		}
+	}
+}
+
 func TestRegularLowFlagAliasesDoNotChooseStoreWinner(t *testing.T) {
 	for _, conflict := range []string{"none", "archive", "pin"} {
 		for _, reverse := range []bool{false, true} {
@@ -217,10 +309,10 @@ func TestRegularLowFlagAliasesDoNotChooseStoreWinner(t *testing.T) {
 					}
 				}
 				reset := func() {
-					if err := a.db.SetChatArchivedProjection(pn.String(), false); err != nil {
+					if err := a.db.SetChatArchivedProjection(pn.String(), !lidFlags.Archived); err != nil {
 						t.Fatal(err)
 					}
-					if err := a.db.SetChatPinned(pn.String(), true); err != nil {
+					if err := a.db.SetChatPinned(pn.String(), !lidFlags.Pinned); err != nil {
 						t.Fatal(err)
 					}
 				}
@@ -246,8 +338,8 @@ func TestRegularLowFlagAliasesDoNotChooseStoreWinner(t *testing.T) {
 					t.Fatal("projection fetched or mutated remote state")
 				}
 				reset()
-				// The PN echo confirms the actual command exactly. A conflicting
-				// authenticated alias must still refuse before either mirror writes.
+				// Command confirmation still needs the selected LID archive and unpin.
+				// A PN echo cannot repair an absent or conflicting canonical field.
 				f.afterSend = func([]any) []any { return returned }
 				err := a.ArchiveChat(t.Context(), pn, true)
 				if conflict == "none" {
@@ -259,7 +351,49 @@ func TestRegularLowFlagAliasesDoNotChooseStoreWinner(t *testing.T) {
 					if !errors.Is(err, whatsmeow.ErrRegularLowProjectionUnknown) {
 						t.Fatal("conflicting canonical field confirmed command", err)
 					}
-					assertFields(false, true)
+					assertFields(!lidFlags.Archived, !lidFlags.Pinned)
+				}
+			})
+		}
+	}
+}
+
+func TestRegularLowFlagProjectionKeepsUnknownLIDFields(t *testing.T) {
+	for _, field := range []string{"archive", "pin"} {
+		for _, ambiguous := range []bool{false, true} {
+			t.Run(field+map[bool]string{false: "_missing", true: "_ambiguous"}[ambiguous], func(t *testing.T) {
+				a, f, pn, lid := regularLowFixture(t)
+				if err := a.db.SetChatPinned(pn.String(), true); err != nil {
+					t.Fatal(err)
+				}
+				pnArchive := &events.Archive{JID: pn, Action: &waSyncAction.ArchiveChatAction{Archived: proto.Bool(true)}}
+				pnPin := &events.Pin{JID: pn, Action: &waSyncAction.PinAction{Pinned: proto.Bool(false)}}
+				f.projection[pn] = whatsmeow.RegularLowChatProjection{ArchiveKnown: true, Archived: true, PinKnown: true, Pinned: false}
+				returned := []any{pnArchive, pnPin}
+				if field == "archive" {
+					f.projection[lid] = whatsmeow.RegularLowChatProjection{ArchiveAmbiguous: ambiguous, PinKnown: true, Pinned: false}
+					returned = append(returned, &events.Pin{JID: lid, Action: &waSyncAction.PinAction{Pinned: proto.Bool(false)}})
+				} else {
+					f.projection[lid] = whatsmeow.RegularLowChatProjection{ArchiveKnown: true, Archived: true, PinAmbiguous: ambiguous}
+					returned = append(returned, &events.Archive{JID: lid, Action: &waSyncAction.ArchiveChatAction{Archived: proto.Bool(true)}})
+				}
+				f.fetchHook = func(context.Context, string, bool, bool) ([]any, error) { return returned, nil }
+				if err := a.syncAndPersistAppStateDelta(t.Context(), appstate.WAPatchRegularLow, false); err != nil {
+					t.Fatal(err)
+				}
+				for _, event := range []any{pnArchive, pnPin} {
+					a.handleAppStatePersistenceEvent(t.Context(), event, nil)
+				}
+				if err := a.appStatePersist.waitIdle(t.Context()); err != nil {
+					t.Fatal(err)
+				}
+				row, err := a.db.GetChat(pn.String())
+				if err != nil || row.Archived != (field == "pin") || row.Pinned != (field == "pin") {
+					t.Fatal("unknown canonical field fell back to PN shadow", row, err)
+				}
+				debt, err := a.db.AppStateRecoveryRequired("regular_low")
+				if err != nil || debt {
+					t.Fatal("passive unknown created collection debt", err)
 				}
 			})
 		}
@@ -306,64 +440,99 @@ func TestRegularLowReadBindingRangeAndBoundedMirror(t *testing.T) {
 	}
 }
 
-func TestRegularLowReadIdentityAndEchoRefusals(t *testing.T) {
-	for _, reason := range []string{"missing", "local_error", "one_way", "contradiction", "changed_during_delta", "changed_after_IQ", "account_after_IQ", "wrong_echo_range"} {
-		t.Run(reason, func(t *testing.T) {
-			a, f, pn, lid := regularLowFixture(t)
-			remap := func() {
-				f.mu.Lock()
-				delete(f.lids, lid)
-				f.lids[types.NewJID("301", types.HiddenUserServer)] = pn
-				f.mu.Unlock()
+func TestRegularLowChatIdentityAndEchoRefusals(t *testing.T) {
+	for _, action := range []string{"read", "archive", "pin"} {
+		for _, reason := range []string{"missing", "local_error", "one_way", "contradiction", "changed_during_delta", "changed_after_IQ", "account_after_IQ", "policy_after_IQ", "wrong_wire_echo", "wrong_echo_range"} {
+			if reason == "wrong_echo_range" && action != "read" {
+				continue
 			}
-			switch reason {
-			case "missing":
-				delete(f.lids, lid)
-			case "local_error":
-				f.identityErr = errors.New("local mapping unavailable")
-			case "one_way":
-				value := wa.PublicPairUnverified
-				f.pairResult = &value
-			case "contradiction":
-				value := wa.PublicPairContradictory
-				f.pairResult = &value
-			case "changed_during_delta":
-				f.fetchHook = func(context.Context, string, bool, bool) ([]any, error) { remap(); return nil, nil }
-			case "changed_after_IQ":
-				f.afterSend = func(result []any) []any { remap(); return result }
-			case "account_after_IQ":
-				f.afterSend = func(result []any) []any { f.mu.Lock(); f.linkedLID = "801@lid"; f.mu.Unlock(); return result }
-			case "wrong_echo_range":
-				f.afterSend = func(result []any) []any {
-					v := result[0].(*events.MarkChatAsRead)
-					v.Action.MessageRange.LastMessageTimestamp = proto.Int64(31)
-					return result
+			t.Run(action+"/"+reason, func(t *testing.T) {
+				a, f, pn, lid := regularLowFixture(t)
+				remap := func() {
+					f.mu.Lock()
+					delete(f.lids, lid)
+					f.lids[types.NewJID("301", types.HiddenUserServer)] = pn
+					f.mu.Unlock()
 				}
-			}
-			if err := a.MarkChatRead(t.Context(), pn, true); err == nil {
-				t.Fatal("read refusal became success")
-			}
-			row, err := a.db.GetChat(pn.String())
-			if err != nil || !row.Unread || row.UnreadCount != 1 {
-				t.Fatal("refused read changed mirror", row, err)
-			}
-			debt, err := a.db.AppStateRecoveryRequired("regular_low")
-			if err != nil || !debt || f.resolves.Load() != 0 {
-				t.Fatal("lost debt or performed discovery", err)
-			}
-			sends := 0
-			if reason == "changed_after_IQ" || reason == "account_after_IQ" || reason == "wrong_echo_range" {
-				sends = 1
-			}
-			if len(f.patches) != sends {
-				t.Fatal("unexpected mutation/retry", len(f.patches))
-			}
-			if reason == "missing" || reason == "local_error" || reason == "one_way" || reason == "contradiction" {
-				if len(f.appStateFetches) != 0 {
-					t.Fatal("invalid pair reached delta")
+				switch reason {
+				case "missing":
+					delete(f.lids, lid)
+				case "local_error":
+					f.identityErr = errors.New("local mapping unavailable")
+				case "one_way":
+					value := wa.PublicPairUnverified
+					f.pairResult = &value
+				case "contradiction":
+					value := wa.PublicPairContradictory
+					f.pairResult = &value
+				case "changed_during_delta":
+					f.fetchHook = func(context.Context, string, bool, bool) ([]any, error) { remap(); return nil, nil }
+				case "changed_after_IQ":
+					f.afterSend = func(result []any) []any { remap(); return result }
+				case "account_after_IQ":
+					f.afterSend = func(result []any) []any { f.mu.Lock(); f.linkedLID = "801@lid"; f.mu.Unlock(); return result }
+				case "policy_after_IQ":
+					f.afterSend = func(result []any) []any {
+						f.policyMu.Lock()
+						f.status.Enabled = false
+						f.policyMu.Unlock()
+						return result
+					}
+				case "wrong_wire_echo":
+					f.afterSend = func(result []any) []any {
+						for _, event := range result {
+							switch v := event.(type) {
+							case *events.Archive:
+								v.JID = pn
+							case *events.Pin:
+								v.JID = pn
+							case *events.MarkChatAsRead:
+								v.JID = pn
+							}
+						}
+						return result
+					}
+				case "wrong_echo_range":
+					f.afterSend = func(result []any) []any {
+						v := result[0].(*events.MarkChatAsRead)
+						v.Action.MessageRange.LastMessageTimestamp = proto.Int64(31)
+						return result
+					}
 				}
-			}
-		})
+				var applyErr error
+				switch action {
+				case "read":
+					applyErr = a.MarkChatRead(t.Context(), pn, true)
+				case "archive":
+					applyErr = a.ArchiveChat(t.Context(), pn, true)
+				case "pin":
+					applyErr = a.PinChat(t.Context(), pn, true)
+				}
+				if applyErr == nil {
+					t.Fatal("chat state refusal became success")
+				}
+				row, err := a.db.GetChat(pn.String())
+				if err != nil || !row.Unread || row.UnreadCount != 1 || row.Archived || row.Pinned {
+					t.Fatal("refused action changed mirror", row, err)
+				}
+				debt, err := a.db.AppStateRecoveryRequired("regular_low")
+				if err != nil || !debt || f.resolves.Load() != 0 {
+					t.Fatal("lost debt or performed discovery", err)
+				}
+				sends := 0
+				if reason == "changed_after_IQ" || reason == "account_after_IQ" || reason == "policy_after_IQ" || reason == "wrong_wire_echo" || reason == "wrong_echo_range" {
+					sends = 1
+				}
+				if len(f.patches) != sends {
+					t.Fatal("unexpected mutation/retry", len(f.patches))
+				}
+				if reason == "missing" || reason == "local_error" || reason == "one_way" || reason == "contradiction" {
+					if len(f.appStateFetches) != 0 {
+						t.Fatal("invalid pair reached delta")
+					}
+				}
+			})
+		}
 	}
 }
 
@@ -408,10 +577,41 @@ func TestRegularLowReadProjectionUsesCanonicalLID(t *testing.T) {
 	}
 }
 
+func TestRegularLowCallbackRetainsPairChangeDebt(t *testing.T) {
+	for _, field := range []string{"archive", "pin", "read"} {
+		t.Run(field, func(t *testing.T) {
+			a, f, pn, lid := regularLowFixture(t)
+			f.projection[lid] = whatsmeow.RegularLowChatProjection{ArchiveKnown: true, Archived: true, PinKnown: true, Pinned: true, ReadKnown: true, Read: true, ReadAction: appstate.BuildMarkChatAsRead(lid, true, time.Unix(30, 0), nil).Mutations[0].Value.GetMarkChatAsReadAction()}
+			f.afterPair = func() { f.afterPair = nil; f.mu.Lock(); delete(f.lids, lid); f.mu.Unlock() }
+			var event any
+			switch field {
+			case "archive":
+				event = &events.Archive{JID: pn}
+			case "pin":
+				event = &events.Pin{JID: pn}
+			case "read":
+				event = &events.MarkChatAsRead{JID: pn}
+			}
+			a.handleAppStatePersistenceEvent(t.Context(), event, nil)
+			if err := a.appStatePersist.waitIdle(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			row, err := a.db.GetChat(pn.String())
+			if err != nil || row.Archived || row.Pinned || !row.Unread {
+				t.Fatal("changed pair reached callback mirror", row, err)
+			}
+			debt, err := a.db.AppStateRecoveryRequired("regular_low")
+			if err != nil || !debt {
+				t.Fatal("changed verified pair became passive missing", err)
+			}
+		})
+	}
+}
+
 func TestRegularLowBindingOwnPairExplicitLIDAndDefault(t *testing.T) {
 	a, f, pn, lid := regularLowFixture(t)
 	delete(f.lids, lid)
-	b, err := a.bindRegularLowRead(t.Context(), lid)
+	b, err := a.bindRegularLowChat(t.Context(), lid)
 	if err != nil || b.Store != lid || b.Wire != lid {
 		t.Fatal("unpaired explicit LID changed", b, err)
 	}
@@ -424,20 +624,20 @@ func TestRegularLowBindingOwnPairExplicitLIDAndDefault(t *testing.T) {
 	}
 	own, _ := types.ParseJID(f.LinkedJID())
 	ownLID, _ := types.ParseJID(f.LinkedLID())
-	b, err = a.bindRegularLowRead(t.Context(), own)
+	b, err = a.bindRegularLowChat(t.Context(), own)
 	if err != nil || b.Store != own || b.Wire != ownLID {
 		t.Fatal("known Device pair required invented map row", b, err)
 	}
 	f.lids[types.NewJID("999", types.HiddenUserServer)] = own
-	if _, err = a.bindRegularLowRead(t.Context(), own); !errors.Is(err, errRegularLowReadIdentity) {
+	if _, err = a.bindRegularLowChat(t.Context(), own); !errors.Is(err, errRegularLowChatIdentity) {
 		t.Fatal("own Device overrode local contradiction", err)
 	}
 	group := types.NewJID("400", types.GroupServer)
-	if b, err := a.prepareRegularLowRead(t.Context(), group); err != nil || b != nil {
+	if b, err := a.prepareRegularLowChat(t.Context(), group); err != nil || b != nil {
 		t.Fatal("group acquired new identity policy", b, err)
 	}
 	f.status.Enabled = false
-	if b, err := a.prepareRegularLowRead(t.Context(), pn); err != nil || b != nil {
+	if b, err := a.prepareRegularLowChat(t.Context(), pn); err != nil || b != nil {
 		t.Fatal("default acquired compatibility policy", b, err)
 	}
 }

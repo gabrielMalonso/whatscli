@@ -130,7 +130,9 @@ func (a *App) handleAppStateSyncError(ctx context.Context, evt *events.AppStateS
 
 func (a *App) recoverAppStateCollection(ctx context.Context, name string, timeout time.Duration) {
 	if a.regularLowEnabled(appstate.WAPatchName(name)) {
-		if err := a.syncAndPersistAppStateDelta(ctx, appstate.WAPatchRegularLow, false); err != nil {
+		recoveryCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		if err := a.syncAndPersistAppStateDelta(recoveryCtx, appstate.WAPatchRegularLow, false); err != nil {
 			a.warnAppStateRecovery(name, err)
 		}
 		return

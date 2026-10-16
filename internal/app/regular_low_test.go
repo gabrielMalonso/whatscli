@@ -753,3 +753,46 @@ func TestRegularLowStartupAndRecoveryStayExplicit(t *testing.T) {
 		})
 	}
 }
+
+func TestRegularLowRecoveryRetainsTimeout(t *testing.T) {
+	for _, blocked := range []string{"lock", "fetch"} {
+		t.Run(blocked, func(t *testing.T) {
+			a, f, _, _ := regularLowFixture(t)
+			if _, err := a.db.MarkAppStateRecoveryGeneration("regular_low"); err != nil {
+				t.Fatal(err)
+			}
+			if blocked == "lock" {
+				release, err := a.acquireChatStateSync(t.Context())
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer release()
+			}
+			fetches := 0
+			f.fetchHook = func(ctx context.Context, name string, full, _ bool) ([]any, error) {
+				fetches++
+				if name != "regular_low" || full {
+					t.Error("recovery reset or changed collection")
+				}
+				<-ctx.Done()
+				return nil, ctx.Err()
+			}
+			// The parent is a watchdog; recovery must exhaust its own budget
+			// without waiting for the owner lifetime to end.
+			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+			defer cancel()
+			a.recoverAppStateCollection(ctx, "regular_low", 10*time.Millisecond)
+			if ctx.Err() != nil {
+				t.Fatal("recovery ignored its timeout and waited for the parent")
+			}
+			debt, err := a.db.AppStateRecoveryRequired("regular_low")
+			wantFetches := 0
+			if blocked == "fetch" {
+				wantFetches = 1
+			}
+			if err != nil || !debt || fetches != wantFetches || len(f.appStateRecoveries) != 0 || len(f.patches) != 0 {
+				t.Fatalf("timeout lost debt, reset, retried or sent: %v %v %d", debt, err, fetches)
+			}
+		})
+	}
+}

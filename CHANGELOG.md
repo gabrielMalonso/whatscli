@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Experimental sync: keep regular_low recovery lock/delta attempts bounded by the supplied timeout, retaining debt without resets or primary recovery on expiry.
+
 - Experimental chat state: refuse an agent action when its public session observation disagrees with the frozen SDK PN/LID binding; retain debt and report no dispatch or conflicting identity observation.
 
 - Experimental chat state: refuse a key-changing SET that would leave two physical records for the same logical field before submitting its mutating IQ. Report SDK-proven preflight refusals as `not_dispatched`; failures after an attempted IQ or 409 remain uncertain, with no automatic replay or local mirror update.

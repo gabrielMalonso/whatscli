@@ -76,3 +76,5 @@ require (
 )
 
 tool github.com/sqlc-dev/sqlc/cmd/sqlc
+
+replace go.mau.fi/whatsmeow => github.com/gabrielMalonso/whatsmeow v0.0.0-20261016172239-9d38aeb30443
